@@ -249,13 +249,46 @@ ez ennyire biztosan nem igaz (kezdve azzal, hogy egyáltalán nincs minden
 elhunyt felboncolva; Magyarországon 2021-ben 23% volt a [boncolási
 arány](https://gateway.euro.who.int/en/indicators/hfa_545-6410-autopsy-rate-for-all-deaths)
 és ez még egy kiugróan magas szám, a legtöbb nyugati országban ez a
-10%-ot sem éri el). A kódolás minősége, egységes útmutató ide vagy oda,
-szintén kérdés lehet, ez különösen igaz, ha a fejlett világon túli
-[országokat
+10%-ot sem éri el).
+
+Az első kérdés a használt osztályozási rendszer, a Betegségek Nemzetközi
+Osztályozása (röviden BNO) ami meghatározza, hogy milyen halálokok
+léteznek és hogy azokba milyen algoritmus szerint kell besorolni az
+elhunytakat. A gond az, hogy az orvosi tudás bővülésével ez folyamatosan
+változik, tipikusan bővül, mégpedig elég drámaian: a BNO 1900-ban
+bevezetett első változata 191 kódot tartalmazott, a 2022-ben elindított
+11. revízió pedig 17 ezret… Közben bizonyos kódokat törölnek is, vagy
+egybevonnak másokkal, a bővülés sem feltétlenül új betegségek
+megjelenését jelenti, hanem meglevőek részletesebb szétbontását és így
+tovább. Az [külön
+tudomány](https://www.tandfonline.com/doi/abs/10.1080/01615440.1996.10112731),
+hogy az eltérő verziókat hogyan kell összekapcsolni, de látszik, hogy ez
+tökéletesen soha nem tehető meg. Ez eleve korlátozza az egységességet,
+ha különböző időpontokról beszélünk.
+
+Valójában ennél kicsit rosszabb a helyzet, mert egy revízió érvényességi
+időtartamán belül is lehetnek változások. Ezt azért említem külön, mert
+a magyar adatokat érinti: 1995-től 2022-ig a 10. revízió volt érvényben,
+mégis, 2005-től érzékelhetően megváltoztak a számok. (Az össz-halálozás
+természetesen adott, így ez lényegében a különböző kategóriák közötti
+átrendeződést jelenti.) Ennek az oka egyrészt, hogy ekkor [tértek
+át](https://www.ksh.hu/docs/hun/modsz/nep_modsz.html) a KSH-nál az
+automatikus, gépi haláloki besorolási rendszerre a korábbi kézi
+besorolás helyett, egy új halottvizsgálati bizonyítvány formátum,
+valamint szigorúbb orvos-szakmai ellenőrzés elindításával együtt,
+másrészt ekkor [vezették
+át](http://diploma.uni-sopron.hu/1890/1/kplhi1604.pdf) egyben az 1995
+óta a WHO által kiadott apróbb, revízión belüli változásokat. Ezek miatt
+a 2005 előtti és utáni magyar adatok összehasonlítása esetén óvatosan,
+erre tekintettel kell eljárni.
+
+Természetesen a kódolás minősége is kérdés lehet, történhetnek
+adminisztratív hibák, hiányos vagy téves kódolások, nem biztos, hogy
+tökéletes a jelentési fegyelem stb., ez különösen igaz, ha a fejlett
+világon túli [országokat
 is](https://iris.who.int/bitstream/handle/10665/269355/PMC2624200.pdf)
-be akarjuk vonni a vizsgálatokba, történhetnek adminisztratív hibák, nem
-biztos, hogy tökéletes a jelentési fegyelem stb. Több nemzetközi
-tanulmány vizsgálta a kódolási minőséget (például az
+be akarjuk vonni a vizsgálatokba. Több nemzetközi tanulmány vizsgálta a
+kódolási minőséget (például az
 [autóbalesetekre](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10523810/)
 vagy épp az
 [esésekre](https://bmcgeriatr.biomedcentral.com/articles/10.1186/s12877-021-02744-3)
@@ -340,8 +373,8 @@ szerint.
 Ezzel elérünk a témának egyfelől a sava-borsához, de másfelől az egyik
 legnehezebb részéhez.
 
-„Németországban jóval több X-et esznek mint nálunk, és kevesebb a
-rákosos halálozás mint nálunk! Egyél X-et a rák megelőzésére!”
+„Németországban jóval több X-et esznek mint nálunk, és kevesebb a rákos
+halálozás mint nálunk! Egyél X-et a rák megelőzésére!”
 
 „Svédországban sokkal kevesebb az Y légszennyező anyag mint nálunk és
 nézd meg, sokkal kevesebb a tüdőbetegség miatti halálozás! Az Y
@@ -350,8 +383,8 @@ tüdőbetegséget okoz!”
 „Tavaly bevezettek nálunk egy új oltást, és nézd meg idén mennyivel több
 az infarktusos halál! Az oltás infarktust okoz!”
 
-Első ránézésre azt gondolhatnánk, hogy ezekkel a mondatokkal semmi baj
-nincs, sőt, voltaképp ezért csináljuk az egészet. Hát nem ezt mondtam az
+Első ránézésre úgy tűnik, hogy ezekkel a mondatokkal semmi baj nincs,
+sőt, voltaképp ezért csináljuk az egészet. Hát nem ezt mondtam az
 elején? Hogy azért érdekel minket, hogy hol, mikor és ki hal meg, hogy
 ebből következtessünk az okozati viszonyokra.
 
@@ -1325,7 +1358,7 @@ A másik az Eurostat, `demo_pjan` tábla:
 PopDataES <- data.table(eurostat::get_eurostat("demo_pjan", use.data.table = TRUE))
 ```
 
-    ## Table demo_pjan cached at C:\Users\FERENC~1\AppData\Local\Temp\Rtmpu8MLsb/eurostat/4344de13d27ff70035a78eb8530877eb.rds
+    ## Table demo_pjan cached at C:\Users\FERENC~1\AppData\Local\Temp\RtmpsViOQl/eurostat/4344de13d27ff70035a78eb8530877eb.rds
 
 ``` r
 PopDataES$Year <- lubridate::year(PopDataES$TIME_PERIOD)
