@@ -871,7 +871,7 @@ library(data.table)
 A mortalitási adatok (halálozások számai) az Egészségügyi Világszervezet
 (WHO) mortalitási
 [adatbázisából](https://www.who.int/data/data-collection-tools/who-mortality-database)
-származnak. Ezek tartalmazzák az egyes jelentést adó országok halálozási
+származnak. Ez tartalmazza az egyes jelentést adó országok halálozási
 számait életkor, nem, év és halálok szerint lebontva. E tényezők szinte
 mindegyike igényel kommentárt:
 
@@ -881,23 +881,23 @@ mindegyike igényel kommentárt:
   fejlesztenek, és amely azt célozza meg, hogy az összes ismert,
   relevánsan elkülöníthető betegség nemzetközileg egységes, hierarchikus
   osztályozási rendszere legyen. A WHO adatbázisa 1995-től a BNO 10-es
-  változatát használja, ez több mint 11 ezer önálló betegséget
+  változatát használja; ez több mint 11 ezer önálló betegséget
   tartalmaz. (Már létezik BNO-11 is, azonban ennek bevezetése még csak
   jelenleg zajlik, eddig még nem e szerintiek a jelentetett adatok.) E
   verzióban a kód formátuma – és ebből fakadóan a hierarchia – a
-  következő: a kód első karaktere egy betű, ami a főcsoportot adja meg
+  következő. A kód első karaktere egy betű, ami a főcsoportot adja meg
   (pl. C: „rosszindulatú daganatok”). A második és harmadik karakter
   szám, ami ezen belül adja meg a betegséget (pl. C92: „myeloid
   leukaemia”); ezek általában valamilyen logikus – pl. anatómiai vagy
   klinikai – sorrendben vannak megadva (pl. C00-tól C14-ig az az ajak, a
   szájüreg és garat rosszindulatú daganatai vannak, C15 a nyelőcső
   rosszindulatú daganata, C16 a gyomoré és így tovább a tápcsatorna
-  mentén). A negyedik karakter a betegség további lebontása, például
+  mentén). A negyedik karakter a betegség további lebontása, jellemzően
   típus vagy anatómiai lokalizáció szerint (pl. C925: „akut
   myelomonocytás leukaemia”). A WHO ezt az első 4 karaktert kontrollálja
   központilag, az 5. karaktert az egyes országok szabadon használhatják
-  fel saját – akár például finanszírozási, tudományos-statisztikai vagy
-  egyéb célt szolgáló – osztályozásukra (pl. Magyarországon C9251: „Akut
+  fel saját – finanszírozási, tudományos-statisztikai vagy egyéb célt
+  szolgáló – osztályozásukra (pl. Magyarországon C9251: „Akut
   myelomonocytás leukaemia, alacsony-közepes malignitás”). A WHO
   mortalitási adatbázisában ennek megfelelően legfeljebb 4 karaktert
   kell jelenteni, de ezt sem kötelező, van ország, ami csak 3 karaktert,
@@ -920,7 +920,8 @@ mindegyike igényel kommentárt:
   országok/évek szinte kivétel nélkül a 0-s, 1-es, vagy 2-es kategóriába
   tartoztak; mindegyiket felhasználtam. (Ez megfelelő lélekszám adatokat
   igényel, és persze odafigyelést a kódolás során arra, hogy melyik
-  ország/év melyik csoportba tartozik.)
+  ország/év melyik csoportba tartozik. Az sem biztos, hogy egy ország
+  minden évben ugyanazt a bontást használja.)
 - A nem változó az alany születési nemét jelenti, 1 (férfi) vagy 2 (nő)
   értéket vehet fel, ezen kívül a 9-es (ismeretlen) fordul elő, de
   nagyon kis számban, ezeket elhagytam.
@@ -945,20 +946,20 @@ RawData <- rbindlist(lapply(list.files(td, pattern = "Morticd10*", full.names = 
 Problémát jelenthetnek az ország-kódok, amelyek egy elég szokatlan,
 szerintem egyedül a WHO által használt kódrendszerrel vannak kódolva
 (pl. Magyarország kódja 4150). Szerencsére a WHO honlapjáról letölthető
-egy olyan táblázat, melyben a szokásosabb kódok is megtalálhatóak e
-mellett, így ez lecserélhető valamilyen bevettebb kódra; én most a
-háromjegyű ISO kódot fogom a későbbiekben használni az egyértelmű
-azonosításhoz:
+egy olyan
+[táblázat](https://apps.who.int/gho/data/node.metadata.COUNTRY?lang=en),
+melyben a szokásosabb kódok is megtalálhatóak e mellett, így ez
+lecserélhető valamilyen bevettebb kódra; én most a [háromjegyű ISO
+kódot](https://www.iso.org/iso-3166-country-codes.html) fogom a
+későbbiekben használni az egyértelmű azonosításhoz:
 
 ``` r
 CountryCodes <- fread(
   "https://apps.who.int/gho/athena/data/xmart.csv?target=COUNTRY&profile=xmart")
 ```
 
-Ez majdnem tökéletesen összekapcsolható a korábbi táblával, azaz
-használható a kódok ISO-ra történő lecseréléséhez, mindössze két, nagy
-jelentőséggel nem bíró területet vesztünk el, mert nincs kódja (1303:
-Mayotte, 3283: Occupied Palestinian Territory):
+Nézzük meg, hogy ez összekapcsolható-e a korábbi táblával, azaz, minden
+ország(kód) megvan-e:
 
 ``` r
 unique(merge(RawData, CountryCodes[, .(Country = MORT, CountryName = DisplayString, iso3c = ISO,
@@ -968,6 +969,20 @@ unique(merge(RawData, CountryCodes[, .(Country = MORT, CountryName = DisplayStri
 
     ## [1] 1303 3283
 
+Ez két egészen minimális terület, de a teljesség kedvéért pótoljuk ki
+(szerencsére a WHO táblázatában kézzel megtalálhatóak, csak a
+mortalitási tábla szerinti kód nincs feltüntetve valamiért):
+
+``` r
+CountryCodes <- rbind(CountryCodes,
+                      data.table(MORT = c(1303, 3283),
+                                 DisplayString = c("Mayotte", "Occupied Palestinian Territory"),
+                                 ISO = c("MYT", "PSE"),
+                                 WHO_REGION_CODE = c("", "EMR")), fill = TRUE)
+```
+
+Most már végrehajthatjuk veszteség nélkül az összekapcsolást:
+
 ``` r
 RawData <- merge(RawData, CountryCodes[, .(Country = MORT, CountryName = DisplayString,
                                            iso3c = ISO, Region = WHO_REGION_CODE)],
@@ -975,13 +990,9 @@ RawData <- merge(RawData, CountryCodes[, .(Country = MORT, CountryName = Display
 ```
 
 Azért, hogy felesleges adatokat ne tároljunk, muszáj egy kicsit
-előrefutni: betöltöm a lélekszám-adatokat is a HMD-ből (részleteket lásd
-a következő pontban), hogy csak azokat az országokat őrizzük meg,
-amikhez van lélekszám-adat.
-
-Egyedül arra kell vigyázni, hogy a HMD-ben bizonyos országok kódjai, ami
-a fájlnév elején jelenik meg, nem az ISO-kód; ezeket – hogy az
-ISO-kódokat ne kelljen bántani – a fájlok átnevezésével oldjuk meg:
+előrefutni: betöltjük a lélekszám-adatokat is a HMD-ből (részleteket
+lásd a következő pontban), hogy csak azokat az országokat őrizzük meg,
+amikhez van lélekszám-adat:
 
 ``` r
 unzip("./inputdata/population.zip", exdir = td)
@@ -1007,58 +1018,23 @@ list.files(paste0(td, "/Population"))
     ## [46] "SVN.Population.txt"     "SWE.Population.txt"     "TWN.Population.txt"    
     ## [49] "UKR.Population.txt"     "USA.Population.txt"
 
-``` r
-file.rename(paste0(td, "/Population/DEUTNP.Population.txt"),
-            paste0(td, "/Population/DEU.Population.txt")) # a kód 4085, egész Németország
-```
+Egyedül arra kell vigyázni, hogy a HMD-ben bizonyos országok kódjai,
+amik a fájlnév elején jelennek meg, nem ISO-kódok; ezeket – hogy az
+ISO-kódokat ne kelljen bántani – a fájlok átnevezésével oldjuk meg:
 
     ## [1] TRUE
 
-``` r
-file.rename(paste0(td, "/Population/FRATNP.Population.txt"),
-            paste0(td, "/Population/FRA.Population.txt"))
-```
+    ## [1] TRUE
 
     ## [1] TRUE
 
-``` r
-file.rename(paste0(td, "/Population/GBR_NP.Population.txt"),
-            paste0(td, "/Population/GBR.Population.txt"))
-```
+    ## [1] TRUE
 
     ## [1] TRUE
 
-``` r
-file.rename(paste0(td, "/Population/GBRTENW.Population.txt"),
-            paste0(td, "/Population/X10.Population.txt"))
-```
-
     ## [1] TRUE
 
-``` r
-file.rename(paste0(td, "/Population/GBR_NIR.Population.txt"),
-            paste0(td, "/Population/X11.Population.txt"))
-```
-
     ## [1] TRUE
-
-``` r
-file.rename(paste0(td, "/Population/GBR_SCO.Population.txt"),
-            paste0(td, "/Population/X12.Population.txt"))
-```
-
-    ## [1] TRUE
-
-``` r
-file.rename(paste0(td, "/Population/NZL_NP.Population.txt"),
-            paste0(td, "/Population/NZL.Population.txt"))
-```
-
-    ## [1] TRUE
-
-``` r
-PopList <- sapply(strsplit(list.files(paste0(td, "/Population")), ".", fixed = TRUE), `[`, 1)
-```
 
 Ez alapján leszűkítjük a mortalitási adatokat a releváns országokra:
 
@@ -1078,104 +1054,61 @@ A 103 és 10M pláne menthető lenne, most csak az egyszerűség kedvéért
 hagyjuk el, mert nem vészesen nagy veszteség:
 
 ``` r
-RawData[, as.list(prop.table(table(factor(List, levels = unique(RawData$List))))),
-        .(CountryName)][order(`104`, decreasing = TRUE)]
+knitr::kable(RawData[, as.list(prop.table(table(factor(List, levels = unique(RawData$List))))),
+                     .(CountryName)][order(`104`, decreasing = TRUE)])
 ```
 
-    ##                                              CountryName       104        103
-    ##                                                   <char>     <num>      <num>
-    ##  1:                                               Canada 1.0000000 0.00000000
-    ##  2:                                                Chile 1.0000000 0.00000000
-    ##  3:                             United States of America 1.0000000 0.00000000
-    ##  4:       China, Hong Kong Special Administrative Region 1.0000000 0.00000000
-    ##  5:                                               Israel 1.0000000 0.00000000
-    ##  6:                                                Japan 1.0000000 0.00000000
-    ##  7:                                              Austria 1.0000000 0.00000000
-    ##  8:                                              Belarus 1.0000000 0.00000000
-    ##  9:                                              Croatia 1.0000000 0.00000000
-    ## 10:                                              Czechia 1.0000000 0.00000000
-    ## 11:                                              Denmark 1.0000000 0.00000000
-    ## 12:                                               France 1.0000000 0.00000000
-    ## 13:                                              Germany 1.0000000 0.00000000
-    ## 14:                                               Greece 1.0000000 0.00000000
-    ## 15:                                              Hungary 1.0000000 0.00000000
-    ## 16:                                                Italy 1.0000000 0.00000000
-    ## 17:                                           Luxembourg 1.0000000 0.00000000
-    ## 18:                                               Norway 1.0000000 0.00000000
-    ## 19:                                               Poland 1.0000000 0.00000000
-    ## 20:                                             Portugal 1.0000000 0.00000000
-    ## 21:                                                Spain 1.0000000 0.00000000
-    ## 22:                                          Switzerland 1.0000000 0.00000000
-    ## 23: United Kingdom of Great Britain and Northern Ireland 1.0000000 0.00000000
-    ## 24:                    United Kingdom, England and Wales 1.0000000 0.00000000
-    ## 25:                     United Kingdom, Northern Ireland 1.0000000 0.00000000
-    ## 26:                             United Kingdom, Scotland 1.0000000 0.00000000
-    ## 27:                                            Australia 1.0000000 0.00000000
-    ## 28:                                          New Zealand 1.0000000 0.00000000
-    ## 29:                                    Republic of Korea 0.9699473 0.03005271
-    ## 30:                                            Lithuania 0.9592007 0.04079930
-    ## 31:                                              Belgium 0.9587635 0.04123653
-    ## 32:                                               Sweden 0.9227444 0.00000000
-    ## 33:                         Netherlands (Kingdom of the) 0.8470865 0.00000000
-    ## 34:                                              Ireland 0.8322936 0.16770637
-    ## 35:                                              Iceland 0.7589324 0.24106762
-    ## 36:                                             Bulgaria 0.7055724 0.29442756
-    ## 37:                                               Latvia 0.6995301 0.30046989
-    ## 38:                                             Slovakia 0.5994131 0.40058689
-    ## 39:                                              Estonia 0.5931944 0.40680562
-    ## 40:                                              Finland 0.0000000 1.00000000
-    ## 41:                                             Slovenia 0.0000000 1.00000000
-    ##                                              CountryName       104        103
-    ##            10M
-    ##          <num>
-    ##  1: 0.00000000
-    ##  2: 0.00000000
-    ##  3: 0.00000000
-    ##  4: 0.00000000
-    ##  5: 0.00000000
-    ##  6: 0.00000000
-    ##  7: 0.00000000
-    ##  8: 0.00000000
-    ##  9: 0.00000000
-    ## 10: 0.00000000
-    ## 11: 0.00000000
-    ## 12: 0.00000000
-    ## 13: 0.00000000
-    ## 14: 0.00000000
-    ## 15: 0.00000000
-    ## 16: 0.00000000
-    ## 17: 0.00000000
-    ## 18: 0.00000000
-    ## 19: 0.00000000
-    ## 20: 0.00000000
-    ## 21: 0.00000000
-    ## 22: 0.00000000
-    ## 23: 0.00000000
-    ## 24: 0.00000000
-    ## 25: 0.00000000
-    ## 26: 0.00000000
-    ## 27: 0.00000000
-    ## 28: 0.00000000
-    ## 29: 0.00000000
-    ## 30: 0.00000000
-    ## 31: 0.00000000
-    ## 32: 0.07725564
-    ## 33: 0.15291345
-    ## 34: 0.00000000
-    ## 35: 0.00000000
-    ## 36: 0.00000000
-    ## 37: 0.00000000
-    ## 38: 0.00000000
-    ## 39: 0.00000000
-    ## 40: 0.00000000
-    ## 41: 0.00000000
-    ##            10M
+| CountryName                                          |       104 |       103 |       10M |
+|:-----------------------------------------------------|----------:|----------:|----------:|
+| Canada                                               | 1.0000000 | 0.0000000 | 0.0000000 |
+| Chile                                                | 1.0000000 | 0.0000000 | 0.0000000 |
+| United States of America                             | 1.0000000 | 0.0000000 | 0.0000000 |
+| China, Hong Kong Special Administrative Region       | 1.0000000 | 0.0000000 | 0.0000000 |
+| Israel                                               | 1.0000000 | 0.0000000 | 0.0000000 |
+| Japan                                                | 1.0000000 | 0.0000000 | 0.0000000 |
+| Austria                                              | 1.0000000 | 0.0000000 | 0.0000000 |
+| Belarus                                              | 1.0000000 | 0.0000000 | 0.0000000 |
+| Croatia                                              | 1.0000000 | 0.0000000 | 0.0000000 |
+| Czechia                                              | 1.0000000 | 0.0000000 | 0.0000000 |
+| Denmark                                              | 1.0000000 | 0.0000000 | 0.0000000 |
+| France                                               | 1.0000000 | 0.0000000 | 0.0000000 |
+| Germany                                              | 1.0000000 | 0.0000000 | 0.0000000 |
+| Greece                                               | 1.0000000 | 0.0000000 | 0.0000000 |
+| Hungary                                              | 1.0000000 | 0.0000000 | 0.0000000 |
+| Italy                                                | 1.0000000 | 0.0000000 | 0.0000000 |
+| Luxembourg                                           | 1.0000000 | 0.0000000 | 0.0000000 |
+| Norway                                               | 1.0000000 | 0.0000000 | 0.0000000 |
+| Poland                                               | 1.0000000 | 0.0000000 | 0.0000000 |
+| Portugal                                             | 1.0000000 | 0.0000000 | 0.0000000 |
+| Spain                                                | 1.0000000 | 0.0000000 | 0.0000000 |
+| Switzerland                                          | 1.0000000 | 0.0000000 | 0.0000000 |
+| United Kingdom of Great Britain and Northern Ireland | 1.0000000 | 0.0000000 | 0.0000000 |
+| United Kingdom, England and Wales                    | 1.0000000 | 0.0000000 | 0.0000000 |
+| United Kingdom, Northern Ireland                     | 1.0000000 | 0.0000000 | 0.0000000 |
+| United Kingdom, Scotland                             | 1.0000000 | 0.0000000 | 0.0000000 |
+| Australia                                            | 1.0000000 | 0.0000000 | 0.0000000 |
+| New Zealand                                          | 1.0000000 | 0.0000000 | 0.0000000 |
+| Republic of Korea                                    | 0.9699473 | 0.0300527 | 0.0000000 |
+| Lithuania                                            | 0.9592007 | 0.0407993 | 0.0000000 |
+| Belgium                                              | 0.9587635 | 0.0412365 | 0.0000000 |
+| Sweden                                               | 0.9227444 | 0.0000000 | 0.0772556 |
+| Netherlands (Kingdom of the)                         | 0.8470865 | 0.0000000 | 0.1529135 |
+| Ireland                                              | 0.8322936 | 0.1677064 | 0.0000000 |
+| Iceland                                              | 0.7589324 | 0.2410676 | 0.0000000 |
+| Bulgaria                                             | 0.7055724 | 0.2944276 | 0.0000000 |
+| Latvia                                               | 0.6995301 | 0.3004699 | 0.0000000 |
+| Slovakia                                             | 0.5994131 | 0.4005869 | 0.0000000 |
+| Estonia                                              | 0.5931944 | 0.4068056 | 0.0000000 |
+| Finland                                              | 0.0000000 | 1.0000000 | 0.0000000 |
+| Slovenia                                             | 0.0000000 | 1.0000000 | 0.0000000 |
 
 Úgyhogy hagyjuk el ezeket is:
 
 ``` r
 RawData <- RawData[!List%in%c("103", "10M")]
 ```
+
+Így már csak egy kód marad, minden 104-es.
 
 Dobjuk ki az életkori bontás nélküli országokat/éveket (a többit nem,
 azokat megmentjük):
@@ -1188,51 +1121,50 @@ Van összesen 50313 életkorhoz nem rendelt halálozás, de ezek aránya
 egyetlen országnál sem éri el még az 1 ezreléket sem:
 
 ``` r
-RawData[, .(sum(Deaths26)/sum(Deaths1)*1000), .(CountryName)][order(V1)]
+knitr::kable(RawData[, .(sum(Deaths26)/sum(Deaths1)*1000), .(CountryName)][order(V1)])
 ```
 
-    ##                                              CountryName           V1
-    ##                                                   <char>        <num>
-    ##  1:                                              Austria 0.0000000000
-    ##  2:                                             Bulgaria 0.0000000000
-    ##  3:                                              Czechia 0.0000000000
-    ##  4:                                              Denmark 0.0000000000
-    ##  5:                                               France 0.0000000000
-    ##  6:                                              Germany 0.0000000000
-    ##  7:                                              Iceland 0.0000000000
-    ##  8:                                              Ireland 0.0000000000
-    ##  9:                                           Luxembourg 0.0000000000
-    ## 10:                         Netherlands (Kingdom of the) 0.0000000000
-    ## 11:                                               Norway 0.0000000000
-    ## 12:                                               Poland 0.0000000000
-    ## 13:                                             Slovakia 0.0000000000
-    ## 14:                                                Spain 0.0000000000
-    ## 15:                                          Switzerland 0.0000000000
-    ## 16:                    United Kingdom, England and Wales 0.0000000000
-    ## 17:                     United Kingdom, Northern Ireland 0.0000000000
-    ## 18: United Kingdom of Great Britain and Northern Ireland 0.0005075638
-    ## 19:                                              Belgium 0.0035712978
-    ## 20:                             United Kingdom, Scotland 0.0063881946
-    ## 21:                                               Canada 0.0083650637
-    ## 22:                                                Chile 0.0088247085
-    ## 23:                                               Sweden 0.0167316109
-    ## 24:                                            Lithuania 0.0259116227
-    ## 25:                                               Israel 0.0486159150
-    ## 26:                                                Italy 0.0496806895
-    ## 27:                                               Latvia 0.0500927938
-    ## 28:                             United States of America 0.0806172986
-    ## 29:                                            Australia 0.0826013309
-    ## 30:                                              Hungary 0.0894482040
-    ## 31:                                              Belarus 0.0916261984
-    ## 32:                                               Greece 0.1040738480
-    ## 33:                                    Republic of Korea 0.1376767168
-    ## 34:                                             Portugal 0.1486109060
-    ## 35:                                              Estonia 0.1538645650
-    ## 36:                                              Croatia 0.2548436261
-    ## 37:                                          New Zealand 0.4215681528
-    ## 38:                                                Japan 0.5290881196
-    ## 39:       China, Hong Kong Special Administrative Region 0.8052752791
-    ##                                              CountryName           V1
+| CountryName                                          |        V1 |
+|:-----------------------------------------------------|----------:|
+| Austria                                              | 0.0000000 |
+| Bulgaria                                             | 0.0000000 |
+| Czechia                                              | 0.0000000 |
+| Denmark                                              | 0.0000000 |
+| France                                               | 0.0000000 |
+| Germany                                              | 0.0000000 |
+| Iceland                                              | 0.0000000 |
+| Ireland                                              | 0.0000000 |
+| Luxembourg                                           | 0.0000000 |
+| Netherlands (Kingdom of the)                         | 0.0000000 |
+| Norway                                               | 0.0000000 |
+| Poland                                               | 0.0000000 |
+| Slovakia                                             | 0.0000000 |
+| Spain                                                | 0.0000000 |
+| Switzerland                                          | 0.0000000 |
+| United Kingdom, England and Wales                    | 0.0000000 |
+| United Kingdom, Northern Ireland                     | 0.0000000 |
+| United Kingdom of Great Britain and Northern Ireland | 0.0005076 |
+| Belgium                                              | 0.0035713 |
+| United Kingdom, Scotland                             | 0.0063882 |
+| Canada                                               | 0.0083651 |
+| Chile                                                | 0.0088247 |
+| Sweden                                               | 0.0167316 |
+| Lithuania                                            | 0.0259116 |
+| Israel                                               | 0.0486159 |
+| Italy                                                | 0.0496807 |
+| Latvia                                               | 0.0500928 |
+| United States of America                             | 0.0806173 |
+| Australia                                            | 0.0826013 |
+| Hungary                                              | 0.0894482 |
+| Belarus                                              | 0.0916262 |
+| Greece                                               | 0.1040738 |
+| Republic of Korea                                    | 0.1376767 |
+| Portugal                                             | 0.1486109 |
+| Estonia                                              | 0.1538646 |
+| Croatia                                              | 0.2548436 |
+| New Zealand                                          | 0.4215682 |
+| Japan                                                | 0.5290881 |
+| China, Hong Kong Special Administrative Region       | 0.8052753 |
 
 Ennek megfelelően ezeket is el fogjuk majd hagyni (később, amikor majd
 long formátumra váltunk).
@@ -1260,12 +1192,7 @@ RawData$Deaths232425 <- ifelse(RawData$Frmat == 0, NA, RawData$Deaths23)
 RawData$Deaths23 <- ifelse(RawData$Frmat == 0, RawData$Deaths23, NA)
 ```
 
-Ugyanez a helyzet a `Deaths3`-mal, ami a 2-es formátumnál jelent mást:
-
-``` r
-RawData$Deaths3 <- ifelse(RawData$Frmat == 2, NA, RawData$Deaths3)
-```
-
+Ugyanez a helyzet a `Deaths3`-mal, ami a 2-es formátumnál jelent mást.
 Itt viszont az összevont kategóriát az összesnél elmentjük, de ennek
 teljesen más oka van (a referencia-populáció is csak az összevont
 életkori kategóriát fogja tartalmazni):
@@ -1274,6 +1201,12 @@ teljesen más oka van (a referencia-populáció is csak az összevont
 RawData$Deaths3456 <- ifelse(RawData$Frmat == 2, RawData$Deaths3,
                              RawData$Deaths3 + RawData$Deaths4 + RawData$Deaths5 +
                                RawData$Deaths6)
+```
+
+Ezt követően beállítjuk a `Deaths3` értékét is:
+
+``` r
+RawData$Deaths3 <- ifelse(RawData$Frmat == 2, NA, RawData$Deaths3)
 ```
 
 Ezután átalakítjuk az adatokat a későbbi feldolgozást lényegesen
@@ -1305,19 +1238,65 @@ tudjuk állítani, ha kellene):
 RawData <- RawData[Cause != "AAA"]
 ```
 
-A WHO adatbázisában a BNO-kódok érdekes módon annak ellenére sem mind 4
-jegyűek, hogy már leszűkítettük magunkat csak a 104-es formátumra.
-Viszont ahogy nézegettem, ennek egyetlen oka van, ez pedig az, hogy az
-utolsó 0-t néha elhagyták. (Elsőre ráadásul úgy tűnhet, hogy ezt
-teljesen kiszámíthatatlanul, össze-vissza tették, például C33 van, C330
-nincs, de C340 van és C34 nincs. A magyarázat az, hogy hol van
-alábontás: ahol ilyen létezik, mint a C34, ott kiírták a 0-t is, ahol
-viszont nincs, mint a C33, ott nem.) Akárhogy is, ez nekünk később nem
-lesz szerencsés, úgy egészítsük ki a kódokat az esetlegesen hiányzó
-0-kkal, hogy mindenhol 4 jegyű legyen:
+Még egy előkészítő lépést teszünk. A W00-Y34 kódok kilenc kivételtől
+eltekintve (W26, X34, X47, X59, X67, X88, Y06, Y07, Y17) nincsenek
+alábontva három karakteren túl, ennek ellenére néhol szerepel az
+adatbázisban negyedik karakter is. Ennek az az oka, hogy a kód-kézikönyv
+megengedi ezekben az esetekben egy ún. „előfordulás helye” kód
+alkalmazását (0: otthon, 1: bentlakásos intézmény stb.); ez kerülhet a
+4. karakter pozíciójába. Mivel ennek az alkalmazása nem egységes (van
+ország, ami ilyen kódra is jelentett eseményt, de az alábontás nélküli,
+három karakteresre is – noha a 9-es kód az, hogy nem meghatározott
+helyen), ráadásul elvileg itt egy tevékenység-kód is szerepelhet, ami
+azt adja meg, hogy milyen tevékenység közben következett be az esemény,
+így ezeket most össze fogjuk vonni (magyarán eldobjuk ezeket a további
+információkat). Ez tudatos információvesztés, bár vélhetően szinte nulla
+jelentőségű; ha valakinek mégis kellene ez, akkor a nyers adatbázisból
+természetesen kiolvasható. Az átalakítás:
 
 ``` r
-RawData$Cause <- stringi::stri_pad_right(RawData$Cause, 4, 0)
+RawData[substring(Cause, 1, 1) == "W"]$Cause <-
+  substring(RawData[substring(Cause, 1, 1) == "W"]$Cause, 1, 3)
+RawData[substring(Cause, 1, 1) == "X"]$Cause <-
+  substring(RawData[substring(Cause, 1, 1) == "X"]$Cause, 1, 3)
+RawData[(substring(Cause, 1, 1) == "Y")][
+  (as.numeric(substring(Cause, 2, 3)) <= 34) &
+    (!as.numeric(substring(Cause, 2, 3)) %in% c(6, 7))]$Cause <-
+  substring(RawData[(substring(Cause, 1, 1) == "Y")][
+    (as.numeric(substring(Cause, 2, 3)) <= 34) &
+      (!as.numeric(substring(Cause, 2, 3)) %in% c(6, 7))]$Cause, 1, 3)
+```
+
+(Mint látható, a kilenc kivételből hétnél mégis összevontam az adatokat,
+csak kettőnél – Y06 és Y07 – nem. Ennek az az oka, hogy nagyon úgy
+tűnik, hogy a maradék hétnél, hiába is van hivatalos alábontás, nem azt
+használták, hanem az előfordulás helye kódot, ugyanis megjelennek
+ezeknél olyan negyedik számjegyek, amik a hivatalos alábontás szerint
+nem is létezhetnének – viszont az előfordulás helye szerint igen.
+Akárhogy is, ez nem volt egyértelműen beazonosítható, úgyhogy a
+háromkarakteres főcsoportra redukáltam őket, ami viszont már az.)
+
+Természetesen nem elég pusztán a kódokat összevonni, hiszen így
+duplikátumok keletkeznek a sorokban, amiket szintén össze kell vonni,
+szummázással:
+
+``` r
+RawData <- RawData[, .(value = sum(value)), .(iso3c, Year, Cause, Sex, Frmat, Age)]
+```
+
+A WHO adatbázisában a BNO-kódok annak ellenére sem mind 4 jegyűek, hogy
+már leszűkítettük magunkat csak a 104-es formátumra. Ennek az az oka,
+hogy amelyik kódnál nincs alábontás, tehát nem is szerepel 4 jegyű
+kategória alatta, ott a kód három karakterrel szerepel. (Sajnos ez nem
+konzisztens, de erről majd később, a BNO-kódoknál.) A magyar szokás
+azonban az, hogy a kódok mindenképp 5 jegyűek legyenek, ezért a 4
+jegyűek végére „0”-t, a 3 jegyűek végére „H0”-t kell fűzni a hazai
+konvenció szerint; tegyük ezt most meg, hogy később össze tudjuk
+kapcsolni a WHO-s mortalitási táblákat a magyar BNO táblával:
+
+``` r
+RawData[nchar(Cause) == 3]$Cause <- paste0(RawData[nchar(Cause) == 3]$Cause, "H0")
+RawData[nchar(Cause) == 4]$Cause <- paste0(RawData[nchar(Cause) == 4]$Cause, "0")
 ```
 
 Ezután már csak technikai apróság van hátra: a kategoriális változókat
@@ -1351,12 +1330,12 @@ arrow::write_feather(RawData, "./procdata/WHO-MDB.feather")
 A WHO adatbázisának megvan az a problémája, hogy a 0-s adatok – az
 életkor kivételével – nem 0-val szerepelnek, hanem egyszerűen
 hiányoznak. (Magyarán, ha például egy BNO-ból egyáltalán nem volt adott
-országban és adott évben halálozás, akkor nem 0-val fog szerepelni,
-hanem egyszerűen nem lesz benne a BNO a kérdéses országban és évnél. Az
-életkor azért kivétel, mert az külön oszlopokban van az eredeti
-táblában, így ott a 0-k is mindenképp ki vannak írva.) Ennek a későbbi
-kezeléséhez szükségünk lesz országonként és évenként az összes nem és
-életkor kombinációjára:
+országban és adott évben halálozás, akkor nem 0-val fog szerepelni az
+adott BNO, hanem egyszerűen nem lesz benne a BNO a kérdéses országban és
+évnél. Az életkor azért kivétel, mert az külön oszlopokban van az
+eredeti táblában, így ott a 0-k is mindenképp ki vannak írva.) Ennek a
+későbbi kezeléséhez szükségünk lesz országonként és évenként az összes
+nem és életkor kombinációjára:
 
 ``` r
 RawDataAll <- unique(RawData[, .(iso3c, Year, Sex, Age, Frmat)])
@@ -1372,14 +1351,9 @@ magyar fordítást is kérünk; ez három kivétellel (ezeket a kódokat nem
 ismeri) mindenhol működik. Ezt a hármat mentsük el kézzel külön:
 
 ``` r
-CountryCodes <- CountryCodes[MORT %in% unique(RawData$Country) & !ISO%in%c("X10", "X11", "X12"),
+CountryCodes <- CountryCodes[ISO%in%unique(RawData$iso3c) & !ISO%in%c("X10", "X11", "X12"),
                              .(iso3c = ISO, Country = countries::country_name(DisplayString,
                                                                               to = "name_hu"))]
-```
-
-    ## All values in argument - x - are NA or NULL
-
-``` r
 CountryCodes <- rbind(CountryCodes,
                       data.table(iso3c = c("X10", "X11", "X12"),
                                  Country = c("Anglia és Wales", "Észak-Írország", "Skócia")))
@@ -1401,7 +1375,7 @@ a kódokat. Oldjuk ezeket meg!
 
 Elsőként beolvassuk a hivatalos magyar BNO-törzset a [NEAK
 honlapjáról](https://www.neak.gov.hu/felso_menu/szakmai_oldalak/gyogyito_megeleozo_ellatas/adatbazisok/torzsek/torzsek),
-figyelve a jó kódolásra, ami nem nyilvánvaló kérdés:
+figyelve a jó kódolásra:
 
 ``` r
 ICDData <- data.table(foreign::read.dbf("./inputdata/BNOTORZS.DBF", as.is = TRUE))
@@ -1415,61 +1389,132 @@ nevű változó alapján könnyen azonosíthatóak:
 ICDData <- ICDData[ERV_VEGE=="29991231"]
 ```
 
-Ebben a táblában minden BNO-kód pontosan 5 karakter.
-
-Ahol az 5. karakter 0, ott egyszerűen megoldhatjuk a 4 karakterere
-konverziót, mert csak el kell hagyni az utolsó karaktert:
-
-``` r
-ICDData[substring(ICDData$KOD10, 5, 5)=="0"]$KOD10 <- substring(
-  ICDData[substring(ICDData$KOD10, 5, 5)=="0"]$KOD10, 1, 4)
-```
-
-Nagyobb problémát jelentenek a magyar adatbázisban szereplő `H0`
-(illetve a fenti levágás nélkül már csak `H`) végű kódok, amik
-lényegében azt fejezik ki, hogy ott bármi lehet. Ezt azonban így nem
-tudjuk illeszteni a WHO táblájával, ezért jobb híján egyszerűen
-kiegészítjük az összes lehetséges értékkel:
-
-``` r
-ICDData <- rbind(ICDData[substring(KOD10, 4, 4) != "H"],
-                 ICDData[substring(KOD10, 4, 4) == "H", cbind(KOD10 = paste0(substring(KOD10, 1, 3), 0:9), .SD),
-                         .(regi = KOD10)][, -"regi"])
-```
-
-Nagyon érdekes, de még így sem leszünk teljesen rendben: a következő
-kódok szerepelnek a WHO-nál, de a hazai táblában nem. Elképzelésem
-sincs, hogy ennek mi lehet az oka, ilyen elvileg nem fordulhatna elő:
+Ahogy már korábban is említettem, ebben a táblában minden BNO-kód
+pontosan 5 karakter, elvileg tehát illeszthető a WHO-s táblával (a fenti
+átalakításaink után). A gyakorlatban azonban sajnos lesznek olyan kódok,
+amik a WHO-táblában szerepelnek, de a magyar BNO-törzsben mégsem. Nézzük
+meg, hogy mik ezek:
 
 ``` r
 unique(merge(RawData, ICDData[, .(Cause = KOD10, Nev = NEV)], all.x = TRUE)[is.na(Nev)]$Cause)
 ```
 
-    ##   [1] "A970" "A971" "A972" "A979" "B179" "B334" "B485" "B980" "B981" "C799"
-    ##  [11] "C814" "C823" "C824" "C825" "C826" "C846" "C847" "C848" "C849" "C852"
-    ##  [21] "C860" "C861" "C862" "C863" "C864" "C865" "C866" "C884" "C903" "C916"
-    ##  [31] "C918" "C926" "C928" "C933" "C946" "C964" "C965" "C966" "C968" "D164"
-    ##  [41] "D465" "D466" "D474" "D475" "D685" "D686" "D893" "E164" "E883" "G140"
-    ##  [51] "G214" "G233" "G835" "G836" "G904" "G905" "G906" "G907" "H549" "I272"
-    ##  [61] "I725" "I726" "J090" "J123" "J211" "J987" "K025" "K123" "K227" "K317"
-    ##  [71] "K352" "K353" "K358" "K432" "K433" "K434" "K435" "K436" "K437" "K523"
-    ##  [81] "K553" "K581" "K582" "K588" "K635" "K640" "K641" "K642" "K643" "K644"
-    ##  [91] "K645" "K648" "K649" "K662" "K754" "K834" "L987" "M317" "M726" "M797"
-    ## [101] "N181" "N182" "N183" "N184" "N185" "N423" "O142" "O432" "O987" "P916"
-    ## [111] "P917" "Q315" "R003" "R263" "R296" "R502" "R508" "R636" "R652" "R653"
-    ## [121] "R659" "U049" "U070" "U099" "U109" "U129" "W460" "W462" "W468" "W469"
+    ##   [1] "A0900" "A0990" "A16H0" "A9700" "A9710" "A9720" "A9790" "B07H0" "B1790"
+    ##  [10] "B3340" "B4850" "B9800" "B9810" "C22H0" "C25H0" "C34H0" "C43H0" "C45H0"
+    ##  [19] "C57H0" "C71H0" "C7990" "C8000" "C8090" "C8140" "C8230" "C8240" "C8250"
+    ##  [28] "C8260" "C8460" "C8470" "C8480" "C8490" "C8520" "C8600" "C8610" "C8620"
+    ##  [37] "C8630" "C8640" "C8650" "C8660" "C8840" "C9030" "C9160" "C9180" "C9260"
+    ##  [46] "C9280" "C9330" "C9460" "C94H0" "C9640" "C9650" "C9660" "C9680" "D1640"
+    ##  [55] "D4650" "D4660" "D4740" "D4750" "D66H0" "D67H0" "D6850" "D6860" "D8930"
+    ##  [64] "E11H0" "E14H0" "E1640" "E43H0" "E78H0" "E85H0" "E8830" "F05H0" "F10H0"
+    ##  [73] "F73H0" "G14H0" "G2140" "G2330" "G30H0" "G40H0" "G80H0" "G8350" "G8360"
+    ##  [82] "G9040" "G9050" "G9060" "G9070" "G90H0" "G91H0" "G93H0" "H5490" "I11H0"
+    ##  [91] "I12H0" "I21H0" "I25H0" "I26H0" "I2720" "I40H0" "I4800" "I4810" "I4820"
+    ## [100] "I4830" "I4840" "I4890" "I49H0" "I51H0" "I60H0" "I63H0" "I70H0" "I71H0"
+    ## [109] "I7250" "I7260" "I80H0" "J09H0" "J1230" "J15H0" "J18H0" "J20H0" "J2110"
+    ## [118] "J44H0" "J65H0" "J80H0" "J9870" "K0250" "K1230" "K2270" "K25H0" "K3170"
+    ## [127] "K31H0" "K3520" "K3530" "K3580" "K35H0" "K4320" "K4330" "K4340" "K4350"
+    ## [136] "K4360" "K4370" "K5230" "K5530" "K55H0" "K5810" "K5820" "K5880" "K58H0"
+    ## [145] "K6350" "K6400" "K6410" "K6420" "K6430" "K6440" "K6450" "K6480" "K6490"
+    ## [154] "K6620" "K70H0" "K7540" "K8340" "K8500" "K8510" "K8520" "K8530" "K8580"
+    ## [163] "K8590" "K92H0" "L00H0" "L26H0" "L8900" "L8910" "L8920" "L8930" "L8990"
+    ## [172] "L9870" "M3170" "M4590" "M7260" "M7970" "N1810" "N1820" "N1830" "N1840"
+    ## [181] "N1850" "N40H0" "N4230" "N47H0" "N62H0" "O1420" "O4320" "O6000" "O6010"
+    ## [190] "O6030" "O9600" "O9610" "O9690" "O9700" "O9710" "O9790" "O9870" "P9160"
+    ## [199] "P9170" "Q21H0" "Q3150" "R0030" "R09H0" "R1700" "R1790" "R2630" "R2960"
+    ## [208] "R5020" "R5080" "R6360" "R6520" "R6530" "R6590" "R9500" "R9590" "U0490"
+    ## [217] "U0700" "U0990" "U1090" "U1290" "V03H0" "V04H0" "V05H0" "V12H0" "V13H0"
+    ## [226] "W46H0" "Y06H0" "Y07H0" "Y60H0" "Y63H0" "Y7000" "Y7010" "Y7020" "Y7030"
+    ## [235] "Y7080" "Y7100" "Y7110" "Y7120" "Y7130" "Y7180" "Y7200" "Y7210" "Y7220"
+    ## [244] "Y7230" "Y7280" "Y7300" "Y7310" "Y7320" "Y7330" "Y7380" "Y7400" "Y7410"
+    ## [253] "Y7420" "Y7430" "Y7480" "Y7500" "Y7510" "Y7520" "Y7530" "Y7580" "Y7610"
+    ## [262] "Y7620" "Y7630" "Y7680" "Y7700" "Y7720" "Y7800" "Y7810" "Y7820" "Y7880"
+    ## [271] "Y7900" "Y7910" "Y7920" "Y7930" "Y7980" "Y8000" "Y8010" "Y8020" "Y8080"
+    ## [280] "Y8100" "Y8110" "Y8120" "Y8130" "Y8180" "Y8200" "Y8210" "Y8220" "Y8230"
+    ## [289] "Y8280" "Y85H0" "Y88H0"
 
-Ezt kézzel javítjuk:
+Végignézve ezeket a kódokat, a következő problémák azonosíthatóak:
+
+- A magyar BNO-tábla néha nem tartalmazza az alábontásokat (és H0
+  végződést alkalmaz helyettük), pedig léteznek. Ilyen az A09, amiből
+  csak A09H0 van a magyar táblában, holott a WHO-nál két alábontás is
+  van, az A090 és az A099. További példa ilyenre a C80, I48, K85, L89,
+  O60, O96, O97, R17, R95, Y70, Y71, Y72, Y73, Y74, Y75, Y76, Y77, Y78,
+  Y79, Y80, Y81, Y82.
+- A WHO nem alkalmazza konzisztensen az „ahol nincs alábontás, ott 3
+  karakter van, ahol van, ott 4” szabályt. Ilyen például az A16, aminek
+  egy egész sor alkategóriája van, mégis szerepel önmagában az A16 is.
+  (Ami a fenti konverzióval A16H0-ba fog menni, csakhogy ilyet nem
+  talál, mert a magyar törzsben – immár helyesen – csak az alábontott
+  kódok szerepelnek.) Talán arról lehet szó, hogy vannak országok, amik
+  nem használnak finom felbontást, bár az furcsa, hogy ez hogyan fér
+  össze a 104-es kóddal, ami pont azt jelenti, hogy ahol van, ott 4
+  jegyet kell használni. További példa ilyenre a C22, C25, C34, C43,
+  C45, C57, C71, C94, E11, E14, E78, E85, F05, F10, F73, G30, G40, G80,
+  G90, G91, G93, I11, I12, I21, I25, I26, I40, I49, I51, I60, I63, I70,
+  I71, I80, J15, J18, J20, J44, K25, K31, K35, K55, K58, K70, K92, L00,
+  N47, Q21, R09, V03, V04, V05, V12, V13, Y06, Y07, Y60, Y63, Y85, Y88.
+- Azok az esetek, ahol a magyar rendszer elhasználja az 5. karaktert is
+  valamilyen alábontásra, szintén zavart okoznak. Ilyen a B07, ami a
+  WHO-nál – alábontás nélküli – „vírusos szemölcsök”, csakhogy a magyar
+  törzs bevezett egy alkategóriát (B0701) arra, hogy „vírusos szemölcsök
+  talpi lokalizációban 10 db felett”. Ezzel nincs is gond, a probléma
+  az, hogy emiatt az eredeti kategória B0700 kódot kapott, holott
+  logikusabb lenne a B07H0 (és a fenti mechanizmus is ezt fogja keresni,
+  hiszen a WHO-nál csak a háromjegyű B07 van meg). További példa ilyenre
+  a D66, D67, E43, L26, N40, N62.
+- Az előző egy alfaja, amikor a magyar rendszerben csak az öt jegyű
+  alábontás szerepel, a négyjegyzű kategória nem is. Erre példa a D164,
+  ami az arc- és agykoponya csontjainak jóindulatú daganata a WHO-nál,
+  de a magyar rendszerben D1640 nincs, csak D1641 (agykoponya
+  csontjainak jóindulatú daganata) és D1642 (arckoponya csontjainak
+  jóindúlatú daganata). További példa ilyenre a K834.
+- A legbizarrabb példa az A97. Ez a WHO táblája szerint a Dengue-láz,
+  tehát nem is egy nagyon speciális egzotikum, miközben a magyar
+  BNO-törzsben ilyen kód *nem is szerepel*… Hogy végképp teljes legyen a
+  zavar, a Dengue-láz valójában *benne van* a magyar BNO-törzsben, csak
+  épp A90-es kóddal – ami viszont a hivatalos WHO-törzsben nem létezik!
+  Hasonlóképp komplettül hiányzik a B98, C86, G14, J09, K64, R65, W46.
+- Az előbbi enyhébb esete, amikor egy alábontás hiányzik: a B17-ből a
+  WHO-nál B170, B171, B172, B178 és B179 van, de a magyar táblából egész
+  egyszerűen hiányzik a B179! Nem mindig a 9-essel (k.m.n) van a baj, a
+  B33-nál a B334 hiányzik a magyar táblából (holott a WHO-nál megvan).
+  További példa ilyenre a B485, C799, C814, C823, C824, C825, C826,
+  C846, C847, C848, C849, C852, C884, C903, C916, C918, C926, C928,
+  C933, C946, C964, C965, C966, C968, D465, D466, D474, D475, D685,
+  D686, D893, E164, E883, G214, G233, G835, G836, G04, G905, G906, G907,
+  H549, I272, I725, I726, J123, J211, J987, K025, K123, K227, K317,
+  K352, K353, K358, K432, K433, K434, K435, K436, K437, K523, K553,
+  K581, K582, K588, K635, K662, K754, L987, M317, M459, M726, M797,
+  N181, N182, N183, N184, N185, N423, O142, O432, O987, P916, P917,
+  Q315, R003, R263, R296, R502, R508, R636.
+- Érdekes módon van példa az ellentétére is: amikor a magyar tábla
+  szerint van lebontás, de a WHO-nál valójában nincs, ilyen a J65. (A
+  dolog azért gond, mert a lebontás léte miatt hiányozni fog a J65H0,
+  holott a valóságban ez lesz az egyetlen kód itt.) További példa
+  ilyenre a J80.
+- Az U kódok az ún. „különleges célú kódok”; itt valószínűleg nem
+  hibáztatható a magyar tábla, hogy ezeket nem tartalmazza (a WHO-é
+  sem). Öt ilyen fordult elő: U049, U070, U099, U109, U129
+
+Jó lenne kideríteni, hogy a fentieknek mi az oka!
+
+Jobb híján ezeket úgy javítottam, hogy hozzáadtam a magyar táblához a
+hiányzó kódokat, névként megadva a kódot (hiszen nevem nincsen, pont ez
+a probléma, de így nem fogunk adatot veszíteni – az ilyen kódoknál
+névként is a kód fog megjelenni):
 
 ``` r
 ICDData <- rbind(ICDData, data.table(
-  KOD10 = unique(merge(RawData, ICDData[, .(Cause = KOD10, Nev = NEV)], all.x = TRUE)[is.na(Nev)]$Cause),
-  JEL = NA, NEV = unique(merge(RawData, ICDData[, .(Cause = KOD10, Nev = NEV)], all.x = TRUE)[is.na(Nev)]$Cause),
+  KOD10 = unique(merge(RawData, ICDData[, .(Cause = KOD10, Nev = NEV)],
+                       all.x = TRUE)[is.na(Nev)]$Cause),
+  JEL = NA, NEV = unique(merge(RawData, ICDData[, .(Cause = KOD10, Nev = NEV)],
+                               all.x = TRUE)[is.na(Nev)]$Cause),
   NEM = 0, KOR_A = 0, KOR_F = 99, ERV_KEZD = "19950101", ERV_VEGE = "29991231"))
 ```
 
 A későbbi feldolgozhatóság kedvéért az 1. karaktert és a 2-3. számot
-mentsük ki külön:
+mentsük ki külön, ez utóbbit tényleges számmá is alakítva:
 
 ``` r
 ICDData$Kod1 <- substring(ICDData$KOD10, 1, 1)
@@ -1710,14 +1755,14 @@ plot(`+` ~ `-`, data = dcast(PopData[YearSign!=""], iso3c + Age + Year ~ YearSig
 abline(0, 1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->
 
 ``` r
 plot(log(`+`) ~ log(`-`), data = dcast(PopData[YearSign!=""], iso3c + Age + Year ~ YearSign, value.var = "Total"))
 abline(0, 1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-41-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->
 
 ``` r
 dcast(PopData[YearSign!=""], iso3c + Age + Year ~ YearSign, value.var = "Total")[, .(iso3c, Age, Year, `+`, `-`, `+`/`-`)][order(V6)]
@@ -1774,7 +1819,7 @@ A másik az Eurostat, `demo_pjan` tábla:
 PopDataES <- data.table(eurostat::get_eurostat("demo_pjan", use.data.table = TRUE))
 ```
 
-    ## Table demo_pjan cached at C:\Users\FERENC~1\AppData\Local\Temp\Rtmp67dzg3/eurostat/f6f6cd685faf5c12622ed2ae8e7aaef2.rds
+    ## Table demo_pjan cached at C:\Users\FERENC~1\AppData\Local\Temp\RtmpuUrLrt/eurostat/e6aeea1a90a31eacc207ffa74df198c3.rds
 
 ``` r
 PopDataES$Year <- lubridate::year(PopDataES$TIME_PERIOD)
@@ -1897,7 +1942,7 @@ temp <- merge(PopData[, .(iso3c, Age = as.character(Age), Sex, Year, PopHMD = va
 plot(PopHMD ~ PopES, data = temp[!is.na(PopHMD)&!is.na(PopES)])
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->
 
 ``` r
 temp[is.na(PopHMD)&!is.na(PopES)&Age!="_OPEN"][order(Year)]
