@@ -67,6 +67,8 @@ EUCountries <- list(
   "V4" = c("SVK", "CZE", "HUN", "POL")
 )
 
+dimredvizData <- readRDS("dimredvizData.rds")
+
 desctext <- paste0("Hazai és nemzetközi halálozási adatok, halálokok vizsgálatát,",
                    "összehasonlítását lehetővé tevő alkalmazás. Írta: Ferenci Tamás.")
 urlpre <- "https://research.physcon.uni-obuda.hu/"
@@ -164,7 +166,7 @@ ui <- navbarPage(
   footer = list(
     hr(),
     p("Írta: ", a("Ferenci Tamás", href = "http://www.medstat.hu/", target = "_blank",
-                  .noWS = "outside"), ", v0.22"),
+                  .noWS = "outside"), ", v0.26"),
     
     tags$script(HTML("
       var sc_project=11601191; 
@@ -319,37 +321,55 @@ ui <- navbarPage(
     )
   ),
   navbarMenu("Speciális elemzések",
-             tabPanel(title = "Magyarország és a világ",
-                      sidebarLayout(
-                        sidebarPanel(
-                          shinyWidgets::pickerInput("hunworldCountryMultiple",
-                                                    "Összehasonlítási alapot képező országok",
-                                                    CountryCodes[CountryCodes != "HUN"],
-                                                    setdiff(EUCountries$EU27, "HUN"), TRUE,
-                                                    options = pickeropts),
-                          actionButton("hunworldEU27", "EU27 (Európai Unió) beállítása"),
-                          actionButton("hunworldEU15", "EU15 ('Nyugat') beállítása"),
-                          actionButton("hunworldEU11", "EU11 ('Kelet') beállítása"),
-                          actionButton("hunworldV4", "V4 (visegrádi négyek) beállítása"),
-                          checkboxInput("hunworldLog", "Logaritmikus ábra", FALSE),
-                          checkboxInput("hunworldXRangeSet", "Vízszintes tengely tartományának beállítása", FALSE),
-                          conditionalPanel("input.hunworldXRangeSet",
-                                           sliderInput("hunworldXRange", "Vízszintes tengely tartománya",
-                                                       0, 2000, c(0, 100)))
-                        ),
-                        
-                        mainPanel(
-                          shinycssloaders::withSpinner(highchartOutput("hunworldPlot", height = "600px")),
-                          tags$style(type = "text/css", ".irs-grid-pol.small {height: 0px;}"),
-                          sliderInput("hunworldYear", div("Vizsgált év(tartomány)", bslib::tooltip(
-                            bsicons::bs_icon("question-circle"),
-                            paste0("Amennyiben a csúszka két vége nem esik egybe, úgy a megjelenített ",
-                                   "adat a tartomány összesített eredménye. A két végpont egy évre is ",
-                                   "összehúzható, ez esetben a kérdéses év adata fog látszódni."),
-                            placement = "right")), min(RawData$Year), max(RawData$Year),
-                            c(2020, 2022), 1, sep = "", width = "100%")
-                        )
-                      )
+             tabPanel(
+               title = "Magyarország és a világ",
+               sidebarLayout(
+                 sidebarPanel(
+                   shinyWidgets::pickerInput("hunworldCountryMultiple",
+                                             "Összehasonlítási alapot képező országok",
+                                             CountryCodes[CountryCodes != "HUN"],
+                                             setdiff(EUCountries$EU27, "HUN"), TRUE,
+                                             options = pickeropts),
+                   actionButton("hunworldEU27", "EU27 (Európai Unió) beállítása"),
+                   actionButton("hunworldEU15", "EU15 ('Nyugat') beállítása"),
+                   actionButton("hunworldEU11", "EU11 ('Kelet') beállítása"),
+                   actionButton("hunworldV4", "V4 (visegrádi négyek) beállítása"),
+                   checkboxInput("hunworldLog", "Logaritmikus ábra", FALSE),
+                   checkboxInput("hunworldXRangeSet",
+                                 "Vízszintes tengely tartományának beállítása", FALSE),
+                   conditionalPanel("input.hunworldXRangeSet",
+                                    sliderInput("hunworldXRange",
+                                                "Vízszintes tengely tartománya",
+                                                0, 2000, c(0, 100)))
+                 ),
+                 
+                 mainPanel(
+                   shinycssloaders::withSpinner(highchartOutput("hunworldPlot", height = "600px")),
+                   tags$style(type = "text/css", ".irs-grid-pol.small {height: 0px;}"),
+                   sliderInput("hunworldYear", div("Vizsgált év(tartomány)", bslib::tooltip(
+                     bsicons::bs_icon("question-circle"),
+                     paste0("Amennyiben a csúszka két vége nem esik egybe, úgy a megjelenített ",
+                            "adat a tartomány összesített eredménye. A két végpont egy évre is ",
+                            "összehúzható, ez esetben a kérdéses év adata fog látszódni."),
+                     placement = "right")), min(RawData$Year), max(RawData$Year),
+                     c(2020, 2022), 1, sep = "", width = "100%")
+                 )
+               )
+             ),
+             tabPanel(
+               title = "Vizualizáció dimenziócsökkentéssel",
+               sidebarLayout(
+                 sidebarPanel(
+                   shinyWidgets::pickerInput("dimredvizMethod",
+                                             "Alkalmazott módszer",
+                                             c("PCA", "MDS", "t-SNE"), "t-SNE", FALSE,
+                                             options = pickeropts),
+                 ),
+                 
+                 mainPanel(
+                   shinycssloaders::withSpinner(highchartOutput("dimredvizPlot", height = "600px"))
+                 )
+               )
              )
   )
 )
@@ -419,7 +439,7 @@ server <- function(input, output) {
       
       rd <- if(length(country) == 1) rd[iso3c == country] else rd[iso3c %in% country]
       rdAll <- if(length(country) == 1) rdAll[iso3c == country] else rdAll[iso3c %in% country]
-    }
+    } else country <- NA
     
     if(!is.null(yearFilter)) {
       yearSel <- seq(yearFilter[1], yearFilter[2], 1)
@@ -473,7 +493,7 @@ server <- function(input, output) {
     if(addCountryName) rd <- merge(rd, data.table(iso3c = CountryCodes,
                                                   CountryName = names(CountryCodes)))
     
-    return(rd)
+    return(list(rd = rd, icd = icd, country = country))
   }
   
   dataInputTime <- reactive(dataInputFun(
@@ -495,13 +515,14 @@ server <- function(input, output) {
   output$timePlot <- renderHighchart({
     p <- highchart()
     
-    mortdat <- dataInputTime()
+    di <- dataInputTime()
+    mortdat <- di$rd
     gc()
     if(is.null(mortdat)) return(p)
     
     if(input$timeMultipleICD %in% c("Single", "MultiSum") && input$timeMultipleCountry == "Single" && input$timeStratification == "None")
       p <- p |> hc_add_series(mortdat, type = "line", hcaes(x = Year, y = value, group = NA),
-                              name = paste0(if(input$timeMultipleICD == "Single") input$timeICDSingle else input$timeICDMultiple, collapse = ", "))
+                              name = paste0(di$icd, collapse = ", "))
     if(input$timeMultipleICD %in% c("Single", "MultiSum") && input$timeMultipleCountry == "Single" && input$timeStratification == "Sex")
       p <- p |> hc_add_series(mortdat, type = "line", hcaes(x = Year, y = value, group = Sex))
     if(input$timeMultipleICD %in% c("Single", "MultiSum") && input$timeMultipleCountry == "Single" && input$timeStratification == "AgeLabel")
@@ -532,11 +553,20 @@ server <- function(input, output) {
       hc_exporting(enabled = TRUE, chartOptions = list(legend = TRUE),
                    sourceWidth = 1600/2, sourceHeight = 900/2)
     
+    if("HUN" %in% di$country) p <- p |> hc_xAxis(plotLines = list(
+      list(
+        label = list(text = "Módszertani változás (HUN)"),
+        dashStyle = "Dash",
+        value = 2004.5
+      )
+    ))
+    
     p
   })
   
   output$mapPlot <- renderHighchart({
-    mortdat <- dataInputMap()
+    di <- dataInputMap()
+    mortdat <- di$rd
     gc()
     if(is.null(mortdat)) return(p)
     
@@ -594,12 +624,14 @@ server <- function(input, output) {
   output$agesexPlot <- renderHighchart({
     p <- highchart()
     
-    mortdat <- dataInputAgesex()
+    di <- dataInputAgesex()
+    mortdat <- di$rd
     gc()
     if(is.null(mortdat)) return(p)
     
     if(input$agesexMultipleICD %in% c("Single", "MultiSum") & input$agesexMultipleCountry == "Single" & input$agesexStratification == "None")
-      p <- p |> hc_add_series(mortdat, type = "line", hcaes(x = AgeNum, y = value, group = NA), name = paste0(icd, collapse = ", "))
+      p <- p |> hc_add_series(mortdat, type = "line", hcaes(x = AgeNum, y = value, group = NA),
+                              name = paste0(di$icd, collapse = ", "))
     if(input$agesexMultipleICD %in% c("Single", "MultiSum") & input$agesexMultipleCountry == "Single" & input$agesexStratification == "Sex")
       p <- p |> hc_add_series(mortdat, type = "line", hcaes(x = AgeNum, y = value, group = Sex))
     if(input$agesexMultipleICD %in% c("Single", "MultiSum") & input$agesexMultipleCountry == "Single" & input$agesexStratification == "Year")
@@ -689,6 +721,45 @@ server <- function(input, output) {
                    sourceWidth = 1600/2, sourceHeight = 900/2)
     
     p
+  })
+  
+  output$dimredvizPlot <- renderHighchart({
+    hchart(dimredvizData[Method == input$dimredvizMethod], "point",
+           hcaes(x = V1, y = V2, group = iso3c, color = iso3c,
+                 shape = ifelse(Sex == "Férfi", "square", "circle"))) |>
+      hc_chart(events = list(load = JS("function() {
+        var chart = this,
+          seriess = chart.series;
+          
+          seriess.forEach(function(series, index) {
+          var points = series.points;
+            points.forEach(function(point, index) {
+              point.update({
+                marker: {
+                  symbol: point.shape
+                }
+              });
+            });
+          });
+      }")
+      )) |>
+      hc_title(text = paste0("Mortalitási profilok vizualizációja dimenziócsökkentéssel",
+                             " (alkalmazott módszer: ", input$dimredvizMethod, ")")) |>
+      hc_subtitle(
+        text = paste0("Férfi: ◼, Nő: ⚫︎<br>Okspecifikus Mortalitási Adatbázis<br>",
+                      "Ferenci Tamás, medstat.hu"),
+        align = "left", verticalAlign = "bottom") |>
+      hc_add_theme(hc_theme(chart = list(backgroundColor = "white"))) |>
+      hc_credits(enabled = TRUE) |>
+      hc_exporting(enabled = TRUE, chartOptions = list(legend = TRUE),
+                   sourceWidth = 1600/2, sourceHeight = 900/2) |>
+      hc_xAxis(title = list(text = ""), gridLineWidth = 1, labels = list(enabled = FALSE),
+               tickLength = 0, startOnTick = TRUE, endOnTick = TRUE) |>
+      hc_yAxis(title = list(text = ""), labels = list(enabled = FALSE), tickLength = 0) |>
+      hc_plotOptions(scatter = list(marker = list(radius = 3))) |>
+      hc_tooltip(pointFormat = "",
+                 headerFormat =
+                   "{point.point.iso3c}, {point.point.Sex}, {point.point.Year}<br>")
   })
 }
 

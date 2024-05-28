@@ -1365,6 +1365,19 @@ Ezután kimenthetjük az adatokat:
 saveRDS(setNames(CountryCodes$iso3c, CountryCodes$Country), "./procdata/CountryCodes.rds")
 ```
 
+A későbbiekhez jól fog jönni ha az európai országokat besoroljuk nagyobb
+régiók szerint is:
+
+``` r
+EUCountries <- list(
+  "EU27" = countrycode::countrycode(eurostat::eu_countries$code, "eurostat", "iso3c"),
+  "EU15" = c("AUT", "BEL", "DNK", "FIN", "FRA", "DEU", "GRC", "IRL", "ITA", "LUX", "NLD", "PRT",
+             "ESP", "SWE", "GBR"),
+  "EU11" = c("CZE", "EST", "HUN", "LVA", "LTU", "POL", "SVK", "SVN", "BGR", "ROU", "HRV"),
+  "V4" = c("SVK", "CZE", "HUN", "POL")
+)
+```
+
 ### A BNO adatok előkészítése
 
 A BNO-k tulajdonképpen jelen állapotukban is használhatóak lennének,
@@ -1719,7 +1732,7 @@ saveRDS(ICDGroups, "./procdata/ICDGroups.rds")
 ### A lélekszám adatok előkészítése
 
 A WHO közöl ilyen táblát is a honlapján, így nagyon kézenfekvő lenne azt
-használni, csak az a probléma, hogy a felbontása kisebb néha, mint a
+használni, csak az a probléma, hogy a felbontása néha kisebb, mint a
 mortalitási adatoké. (Például Magyarországnál 95 éves korig megy a
 mortalitási adatok lebontása, de a korfa cask 85-ig.) Hogy ezen ne
 veszítsünk információt, a lélekszám adatokat kézzel rakjuk össze.
@@ -1755,14 +1768,14 @@ plot(`+` ~ `-`, data = dcast(PopData[YearSign!=""], iso3c + Age + Year ~ YearSig
 abline(0, 1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->
 
 ``` r
 plot(log(`+`) ~ log(`-`), data = dcast(PopData[YearSign!=""], iso3c + Age + Year ~ YearSign, value.var = "Total"))
 abline(0, 1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-45-2.png)<!-- -->
 
 ``` r
 dcast(PopData[YearSign!=""], iso3c + Age + Year ~ YearSign, value.var = "Total")[, .(iso3c, Age, Year, `+`, `-`, `+`/`-`)][order(V6)]
@@ -1819,7 +1832,7 @@ A másik az Eurostat, `demo_pjan` tábla:
 PopDataES <- data.table(eurostat::get_eurostat("demo_pjan", use.data.table = TRUE))
 ```
 
-    ## Table demo_pjan cached at C:\Users\FERENC~1\AppData\Local\Temp\RtmpuUrLrt/eurostat/e6aeea1a90a31eacc207ffa74df198c3.rds
+    ## Table demo_pjan cached at C:\Users\FERENC~1\AppData\Local\Temp\RtmpuEHioH/eurostat/ab2d180a268a83d76ae3b569e99457aa.rds
 
 ``` r
 PopDataES$Year <- lubridate::year(PopDataES$TIME_PERIOD)
@@ -1942,7 +1955,7 @@ temp <- merge(PopData[, .(iso3c, Age = as.character(Age), Sex, Year, PopHMD = va
 plot(PopHMD ~ PopES, data = temp[!is.na(PopHMD)&!is.na(PopES)])
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->
 
 ``` r
 temp[is.na(PopHMD)&!is.na(PopES)&Age!="_OPEN"][order(Year)]
@@ -2036,6 +2049,38 @@ PopData$Frmat <- as.factor(PopData$Frmat)
 PopData$Age <- as.factor(PopData$Age)
 
 saveRDS(PopData, "./procdata/WHO-MDB-Population.rds")
+```
+
+A későbbiekben szükségünk lesz egy referencia-populációra is az életkor
+szerinti standardizáláshoz; használjuk most az
+[ESP2013](https://ec.europa.eu/eurostat/web/products-manuals-and-guidelines/-/ks-ra-13-028)-at:
+
+``` r
+StdPop <- fread("./inputdata/ESP2013.csv", dec = ",")
+StdPop$Frmat <- as.factor(StdPop$Frmat)
+```
+
+### A dimenzióredukciós vizualizáció adatainak előkészítése
+
+Ennek a lépésnek nagy a számítási időigénye, viszont a végeredményének a
+mérete kicsi, így érdemes előre, off-line elvégezni, hogy aztán a
+weboldal majd csak beolvassa az előre letárolt eredményt:
+
+``` r
+rd <- merge(RawData[iso3c %in% EUCountries$EU27], PopData,
+            by = c("iso3c", "Year", "Sex", "Age", "Frmat"))
+
+rd <- merge(rd, StdPop, by = c("Frmat", "Age"))[
+  , as.list(epitools::ageadjust.direct(value, Pop, stdpop = StdPop)),
+  c("iso3c", "Year", "Sex", "Cause")]
+
+rd <- dcast(rd, iso3c + Year + Sex ~ Cause, value.var = "adj.rate")
+setnafill(rd, type = "const", fill = 0, cols = 4:ncol(rd))
+res <- rbind(cbind(rd[, 1:3], Rtsne::Rtsne(rd[, -(1:3)])$Y, Method = "t-SNE"),
+             cbind(rd[, 1:3], cmdscale(dist(rd[, -(1:3)])), Method = "MDS"),
+             cbind(rd[, 1:3], unname(prcomp(t(rd[, -(1:3)]))$rotation[, 1:2]), Method = "PCA"))
+
+saveRDS(res, "./procdata/dimredvizData.rds")
 ```
 
 ## Az adatok validációja
