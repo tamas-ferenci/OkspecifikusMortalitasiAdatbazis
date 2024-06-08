@@ -8,7 +8,8 @@ Ferenci Tamás (<https://www.medstat.hu/>)
 - [Miért betegek?](#miért-betegek)
 - [Az adatok begyűjtése és
   előkészítése](#az-adatok-begyűjtése-és-előkészítése)
-- [Az adatok validációja](#az-adatok-validációja)
+- [Az adatok és a számítás
+  validációja](#az-adatok-és-a-számítás-validációja)
 - [A weboldal](#a-weboldal)
 - [Továbbfejlesztési lehetőségek](#továbbfejlesztési-lehetőségek)
 
@@ -1362,7 +1363,8 @@ CountryCodes <- rbind(CountryCodes,
 Ezután kimenthetjük az adatokat:
 
 ``` r
-saveRDS(setNames(CountryCodes$iso3c, CountryCodes$Country), "./procdata/CountryCodes.rds")
+CountryCodes <- setNames(CountryCodes$iso3c, CountryCodes$Country)
+saveRDS(CountryCodes, "./procdata/CountryCodes.rds")
 ```
 
 A későbbiekhez jól fog jönni ha az európai országokat besoroljuk nagyobb
@@ -1508,7 +1510,7 @@ Végignézve ezeket a kódokat, a következő problémák azonosíthatóak:
   ilyenre a J80.
 - Az U kódok az ún. „különleges célú kódok”; itt valószínűleg nem
   hibáztatható a magyar tábla, hogy ezeket nem tartalmazza (a WHO-é
-  sem). Öt ilyen fordult elő: U049, U070, U099, U109, U129
+  sem). Öt ilyen fordult elő: U049, U070, U099, U109, U129.
 
 Jó lenne kideríteni, hogy a fentieknek mi az oka!
 
@@ -1539,189 +1541,367 @@ listáját](https://ec.europa.eu/eurostat/cache/metadata/Annexes/hlth_cdeath_sim
 használtam:
 
 ``` r
-ICDGroups <- setNames(as.list(ICDData$KOD10), paste0(ICDData$KOD10, " - ", ICDData$NEV))
-ICDGroups <- ICDGroups[ICDGroups %in% RawData$Cause]
-ICDGroups <- c(ICDGroups,
-               setNames(list(ICDData[Kod1!="Z"&(Kod1!="Y"|Kod23<=89)]$KOD10),
-                        "Összes halálok (A00-Y89)"),
-               setNames(list(ICDData[Kod1%in%c("A", "B")]$KOD10),
-                        "Fertőző és parazitás betegségek (A00-B99)"),
-               setNames(list(ICDData[(Kod1=="A"&Kod23>=15&Kod23<=19)|(Kod1=="B"&Kod23==90)]$KOD10),
-                        "Gümőkór (A15-A19, B90)"),
-               setNames(list(ICDData[Kod1=="B"&Kod23>=20&Kod23<=24]$KOD10),
-                        "Humán immunodeficiencia vírus (HIV) betegség (B20-B24)"),
-               setNames(list(ICDData[(Kod1=="B"&Kod23>=15&Kod23<=19)|KOD10=="B942"]$KOD10),
-                        "Vírusos májgyulladás (B15-B19, B94.2)"),
-               setNames(list(ICDData[(Kod1=="A"&(Kod23<=9|Kod23>=20))|
-                                       (Kod1=="B"&(Kod23<=9|
-                                                     (Kod23>=25&Kod23<=89)|
-                                                     (Kod23>=91&Kod23<=93)|
-                                                     (Kod23>=95&Kod23<=99)|
-                                                     (KOD10%in%c("B940", "B941", "B948", "B949", "B9481"))))]$KOD10),
-                        "Egyéb fertőző és parazitás betegségek (A00-A09, A20-B09, B25-B89, B91-B94.1, B94.8-B99)"),
-               setNames(list(ICDData[Kod1=="C"|(Kod1=="D"&Kod23<=48)]$KOD10),
-                        "Daganatok (C00-D48)"),
-               setNames(list(ICDData[Kod1=="C"]$KOD10),
-                        "Rosszindulatú daganatok (C00-C97)"),
-               setNames(list(ICDData[Kod1=="C"&(Kod23>=0&Kod23<=14)]$KOD10),
-                        "Az ajak, a szájüreg és garat rosszindulatú daganatai (C00-C14)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==15]$KOD10),
-                        "A nyelőcső rosszindulatú daganata (C15)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==16]$KOD10),
-                        "A gyomor rosszindulatú daganata (C16)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23>=18&Kod23<=21]$KOD10),
-                        "A vastagbél, végbél és a végbélnyílás rosszindulatú daganatai (C18-C21)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==22]$KOD10),
-                        "A máj és intrahepaticus epeutak rosszindulatú daganata (C22)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==25]$KOD10),
-                        "A hasnyálmirigy rosszindulatú daganata (C25)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==32]$KOD10),
-                        "A gége rosszindulatú daganata (C32)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23>=33&Kod23<=34]$KOD10),
-                        "A légcső, a hörgő és a tüdő rosszindulatú daganatai (C33-C34)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==43]$KOD10),
-                        "A bőr rosszindulatú melanomája (C43)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==50]$KOD10),
-                        "Az emlő rosszindulatú daganata (C50)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==53]$KOD10),
-                        "A méhnyak rosszindulatú daganata (C53)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23>=54&Kod23<=55]$KOD10),
-                        "A méhtest és a méh nem meghatározott részének rosszindulatú daganatai (C54-55)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==56]$KOD10),
-                        "A petefészek rosszindulatú daganata (C56)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==61]$KOD10),
-                        "A prostata rosszindulatú daganata (C61)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==64]$KOD10),
-                        "A vese rosszindulatú daganata, kivéve a vesemedencét (C64)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==67]$KOD10),
-                        "A húgyhólyag rosszindulatú daganata (C67)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23>=70&Kod23<=72]$KOD10),
-                        "Az agyburkok, az agy, a gerincvelő, az agyidegek és a központi idegrendszer egyéb részeinek rosszindulatú daganatai (C70-C72)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23==73]$KOD10),
-                        "A pajzsmirigy rosszindulatú daganata (C73)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23>=81&Kod23<=86]$KOD10),
-                        "Hodgkin kór és lymphomák (C81-C86)"),
-               setNames(list(ICDData[Kod1=="C"&Kod23>=91&Kod23<=95]$KOD10),
-                        "Leukémia (C91-C95)"),
-               setNames(list(ICDData[Kod1=="C"&(Kod23==88|Kod23==90|Kod23==96)]$KOD10),
-                        "A nyirok-, a vérképző- és kapcsolódó szövetek egyéb rosszindulatú daganatai (C88, C90, C96)"),
-               setNames(list(ICDData[Kod1=="C"&(Kod23==17|(Kod23>=23&Kod23<=24)|(Kod23>=26&Kod23<=31)|(Kod23>=37&Kod23<=41)|(Kod23>=44&Kod23<=49)|(Kod23>=51&Kod23<=52)|(Kod23>=57&Kod23<=60)|(Kod23>=62&Kod23<=63)|(Kod23>=65&Kod23<=66)|(Kod23>=68&Kod23<=69)|(Kod23>=74&Kod23<=80)|Kod23==97)]$KOD10),
-                        "Egyéb rosszindulatú daganatok (C17, C23-C24, C26-C31, C37-C41, C44-C49, C51-C52, C57-C60, C62-C63, C65-C66, C68-C69, C74-C80, C97)"),
-               setNames(list(ICDData[Kod1=="D"&Kod23>=0&Kod23<=48]$KOD10),
-                        "In situ, jóindulatú, vagy bizonytalan vagy ismeretlen viselkedésű daganatok (D00-D48)"),
-               setNames(list(ICDData[Kod1=="D"&Kod23>=50&Kod23<=89]$KOD10),
-                        "A vér és a vérképző szervek betegségei és az immunrendszert érintő egyéb rendellenességek (D50-D89)"),
-               setNames(list(ICDData[Kod1=="E"&Kod23>=0&Kod23<=89]$KOD10),
-                        "Endokrin, táplálkozási és anyagcsere betegségek (E00-E89)"),
-               setNames(list(ICDData[Kod1=="E"&Kod23>=10&Kod23<=14]$KOD10),
-                        "Cukorbetegség (E10-E14)"),
-               setNames(list(ICDData[Kod1=="E"&((Kod23>=0&Kod23<=7)|(Kod23>=15&Kod23<=89))]$KOD10),
-                        "Egyéb endokrin, táplálkozási és anyagcsere betegségek (E00-E07, E15-E89)"),
-               setNames(list(ICDData[Kod1=="F"&Kod23>=1&Kod23<=99]$KOD10),
-                        "Mentális- és viselkedészavarok (F01-F99)"),
-               setNames(list(ICDData[Kod1=="F"&(Kod23==1|Kod23==3)]$KOD10),
-                        "Dementia (F01, F03)"),
-               setNames(list(ICDData[Kod1=="F"&Kod23==10]$KOD10),
-                        "Alkohol okozta mentális- és viselkedészavarok (F10)"),
-               setNames(list(ICDData[Kod1=="F"&((Kod23>=11&Kod23<=16)|(Kod23>=18&Kod23<=19))]$KOD10),
-                        "Drog és pszichoaktív anyagok használata által okozott mentális- és viselkedészavarok (F11-F16, F18-F19)"),
-               setNames(list(ICDData[Kod1=="F"&((Kod23>=4&Kod23<=9)|(Kod23==17)|(Kod23>=20&Kod23<=99))]$KOD10),
-                        "Egyéb mentális- és viselkedészavarok (F04-F09, F17, F20-F99)"),
-               setNames(list(ICDData[Kod1=="G"|Kod1=="H"]$KOD10),
-                        "Az idegrendszer és az érzékszervek betegségei (G00-H95)"),
-               setNames(list(ICDData[Kod1=="G"&Kod23==20]$KOD10),
-                        "Parkinson-kór (G20)"),
-               setNames(list(ICDData[Kod1=="G"&Kod23==30]$KOD10),
-                        "Alzheimer-kór (G30)"),
-               setNames(list(ICDData[(Kod1=="G"&((Kod23>=0&Kod23<=12)|(Kod23==14)|(Kod23>=21&Kod23<=25)|(Kod23>=31)))|Kod1=="H"]$KOD10),
-                        "Az idegrendszer és az érzékszervek egyéb betegségei (G00-G12, G14, G21-G25, G31-H95)"),
-               setNames(list(ICDData[Kod1=="I"&Kod23>=0&Kod23<=99]$KOD10),
-                        "A keringési rendszer betegségei (I00-I99)"),
-               setNames(list(ICDData[Kod1=="I"&Kod23>=20&Kod23<=25]$KOD10),
-                        "Ischaemiás szívbetegségek (I20-I25)"),
-               setNames(list(ICDData[Kod1=="I"&Kod23>=21&Kod23<=22]$KOD10),
-                        "Heveny szívizomelhalás és ismétlődő szívizomelhalás (I21-I22)"),
-               setNames(list(ICDData[Kod1=="I"&((Kod23==20)|(Kod23>=23&Kod23<=25))]$KOD10),
-                        "Egyéb ischaemiás szívbetegségek (I20, I23-I25)"),
-               setNames(list(ICDData[Kod1=="I"&Kod23>=30&Kod23<=51]$KOD10),
-                        "A szívbetegség egyéb formái (I30-I51)"),
-               setNames(list(ICDData[Kod1=="I"&Kod23>=60&Kod23<=69]$KOD10),
-                        "Cerebrovaszkuláris betegségek (I60-I69)"),
-               setNames(list(ICDData[Kod1=="I"&((Kod23>=0&Kod23<=15)|(Kod23>=26&Kod23<=28)|(Kod23>=70&Kod23<=99))]$KOD10),
-                        "A keringési rendszer egyéb betegségei (I00-I15, I26-I28, I70-I99)"),    
-               setNames(list(ICDData[Kod1=="J"&Kod23>=0&Kod23<=99]$KOD10),
-                        "A légzőrendszer betegségei (J00-J99)"),
-               setNames(list(ICDData[Kod1=="J"&Kod23>=9&Kod23<=11]$KOD10),
-                        "Influenza (J09-J11)"),
-               setNames(list(ICDData[Kod1=="J"&Kod23>=12&Kod23<=18]$KOD10),
-                        "Tüdőgyulladás (J12-J18)"),
-               setNames(list(ICDData[Kod1=="J"&Kod23>=40&Kod23<=47]$KOD10),
-                        "Idült alsó légúti betegségek (J40-J47)"),
-               setNames(list(ICDData[Kod1=="J"&Kod23>=45&Kod23<=46]$KOD10),
-                        "Asztma (J45-J46)"),
-               setNames(list(ICDData[Kod1=="J"&((Kod23>=40&Kod23<=44)|(Kod23==47))]$KOD10),
-                        "Egyéb idült alsó légúti megbetegedések (J40-J44, J47)"),
-               setNames(list(ICDData[Kod1=="J"&((Kod23>=0&Kod23<=6)|(Kod23>=20&Kod23<=39)|(Kod23>=60&Kod23<=99))]$KOD10),
-                        "A légzőrendszer egyéb betegségei (J00-J06, J20-J39, J60-J99)"),
-               setNames(list(ICDData[Kod1=="K"&Kod23>=0&Kod23<=92]$KOD10),
-                        "Az emésztőrendszer betegségei (K00-K92)"),
-               setNames(list(ICDData[Kod1=="K"&Kod23>=25&Kod23<=28]$KOD10),
-                        "Gyomor-, nyombél-, pepticus- és gastrojejunalis fekély (K25-K28)"),
-               setNames(list(ICDData[Kod1=="K"&((Kod23==70)|(Kod23>=73&Kod23<=74))]$KOD10),
-                        "Idült májgyulladás, májfibrózis és májzsugorodás, valamint alkoholos májbetegség (K70, K73-K74)"),
-               setNames(list(ICDData[Kod1=="K"&((Kod23>=0&Kod23<=22)|(Kod23>=29&Kod23<=66)|(Kod23>=71&Kod23<=72)|(Kod23>=75&Kod23<=92))]$KOD10),
-                        "Az emésztőrendszer egyéb betegségei (K00-K22, K29-K66, K71-K72, K75-K92)"),
-               setNames(list(ICDData[Kod1=="L"&Kod23>=0&Kod23<=99]$KOD10),
-                        "A bőr és a bőralatti szövet betegségei (L00-L99)"),
-               setNames(list(ICDData[Kod1=="M"&Kod23>=0&Kod23<=99]$KOD10),
-                        "A csont-izomrendszer és kötőszövet betegségei (M00-M99)"),
-               setNames(list(ICDData[Kod1=="M"&((Kod23>=05&Kod23<=06)|(Kod23>=15&Kod23<=19))]$KOD10),
-                        "Rheumatoid arthritis és arthrosis (M05-M06, M15-M19)"),
-               setNames(list(ICDData[Kod1=="M"&((Kod23>=0&Kod23<=2)|(Kod23>=8&Kod23<=13)|(Kod23>=20&Kod23<=99))]$KOD10),
-                        "A csont-izomrendszer és kötőszövet egyéb betegségei (M00-M02, M08-M13, M20-M99)"),
-               setNames(list(ICDData[Kod1=="N"&Kod23>=0&Kod23<=99]$KOD10),
-                        "Az urogenitális rendszer megbetegedései (N00-N99)"),   
-               setNames(list(ICDData[Kod1=="N"&Kod23>=0&Kod23<=29]$KOD10),
-                        "Vese és az ureter betegségei (N00-N29)"),
-               setNames(list(ICDData[Kod1=="N"&Kod23>=30&Kod23<=99]$KOD10),
-                        "Az urogenitális rendszer egyéb betegségei (N30-N99)"),
-               setNames(list(ICDData[Kod1=="O"&Kod23>=0&Kod23<=99]$KOD10),
-                        "A terhesség, a szülés és a gyermekágy komplikációi (O00-O99)"),
-               setNames(list(ICDData[Kod1=="P"&Kod23>=0&Kod23<=96]$KOD10),
-                        "A perinatális szakban keletkező bizonyos állapotok (P00-P96)"),
-               setNames(list(ICDData[Kod1=="Q"&Kod23>=0&Kod23<=99]$KOD10),
-                        "Veleszületett rendellenességek, deformitások és kromoszómaabnormitások (Q00-Q99)"),
-               setNames(list(ICDData[Kod1=="R"&Kod23>=0&Kod23<=99]$KOD10),
-                        "Máshova nem osztályozott panaszok, tünetek és kóros klinikai és laboratóriumi leletek (R00-R99)"),
-               setNames(list(ICDData[Kod1=="R"&Kod23==95]$KOD10),
-                        "Hirtelen csecsemőhalál szindróma  (R95)"),
-               setNames(list(ICDData[Kod1=="R"&Kod23>=96&Kod23<=99]$KOD10),
-                        "Egyéb hirtelen halál ismeretlen okból, halál tanú nélkül, a halálozás rosszul meghatározott és külön megnevezés nélküli okai (R96-R99)"),
-               setNames(list(ICDData[Kod1=="R"&Kod23>=0&Kod23<=94]$KOD10),
-                        "Egyéb máshova nem osztályozott panaszok, tünetek és kóros klinikai és laboratóriumi leletek (R00-R94)"),
-               setNames(list(ICDData[Kod1=="V"|(Kod1=="Y"&Kod23>=0&Kod23<=89)]$KOD10),
-                        "A morbiditás és mortalitás külső okai (V00-Y89)"), 
-               setNames(list(ICDData[(Kod1=="V")|(Kod1=="X"&Kod23>=0&Kod23<=59)|(Kod1=="Y"&Kod23>=85&Kod23<=86)]$KOD10),
-                        "Balesetek (V01-X59, Y85-Y86)"), 
-               setNames(list(ICDData[Kod1=="V"|(Kod1=="Y"&Kod23==85)]$KOD10),
-                        "Közlekedési balesetek (V01-V99, Y85)"), 
-               setNames(list(ICDData[Kod1=="W"&Kod23>=0&Kod23<=19]$KOD10),
-                        "Esések (W00-W19)"),
-               setNames(list(ICDData[Kod1=="W"&Kod23>=65&Kod23<=74]$KOD10),
-                        "Balesetszerű vízbefulladás vagy elmerülés (W65-W74)"),
-               setNames(list(ICDData[Kod1=="X"&Kod23>=40&Kod23<=49]$KOD10),
-                        "Káros anyagok által okozott balesetszerű mérgezés (X40-X49)"),
-               setNames(list(ICDData[(Kod1=="W"&Kod23>=20&Kod23<=64)|(Kod1=="W"&Kod23>=75)|(Kod1=="X"&Kod23<=39)|(Kod1=="X"&Kod23>=50&Kod23<=59)|(Kod1=="Y"&Kod23==86)]$KOD10),
-                        "Egyéb balesetek (W20-W64, W75-X39, X50-X59, Y86)"),
-               setNames(list(ICDData[(Kod1=="X"&Kod23>=60&Kod23<=84)|(KOD10=="Y870")]$KOD10),
-                        "Szándékos önártalom (X60-X84, Y87.0)"),
-               setNames(list(ICDData[(Kod1=="X"&Kod23>=85)|(Kod1=="Y"&Kod23<=9)|(KOD10=="Y871")]$KOD10),
-                        "Testi sértés (X85-Y09, Y87.1)"),
-               setNames(list(ICDData[(Kod1=="Y"&Kod23>=10&Kod23<=34)|(KOD10=="Y872")]$KOD10),
-                        "Nem meghatározott szándékú esemény (Y10-Y34, Y87.2)"),
-               setNames(list(ICDData[(Kod1=="Y"&Kod23>=35&Kod23<=84)|(Kod1=="Y"&Kod23>=88&Kod23<=89)]$KOD10),
-                        "Törvényes beavatkozás és háborús cselekmények, az orvosi ellátás szövődményei, egyéb külső ok (Y35-Y84, Y88-Y89)"))
+ICDGroups <- list(
+  Groups =
+    list(list(ICD = ICDData[Kod1!="Z"&(Kod1!="Y"|Kod23<=89)]$KOD10,
+              EurostatCode = "A-R_V-Y", Name = "Összes halálok (A00-Y89)"),
+         list(ICD = ICDData[Kod1%in%c("A", "B")]$KOD10,
+              EurostatCode = "A_B", Name = "Fertőző és parazitás betegségek (A00-B99)"),
+         list(ICD = ICDData[(Kod1=="A"&Kod23>=15&Kod23<=19)|(Kod1=="B"&Kod23==90)]$KOD10,
+              EurostatCode = "A15-A19_B90", Name = "Gümőkór (A15-A19, B90)"),
+         list(ICD = ICDData[Kod1=="B"&Kod23>=20&Kod23<=24]$KOD10,
+              EurostatCode = "B20-B24",
+              Name = "Humán immunodeficiencia vírus (HIV) betegség (B20-B24)"),
+         list(ICD = ICDData[(Kod1=="B"&Kod23>=15&Kod23<=19)|KOD10=="B9420"]$KOD10,
+              EurostatCode = "B15-B19_B942", Name = "Vírusos májgyulladás (B15-B19, B94.2)"),
+         list(ICD = ICDData[(Kod1=="A"&(Kod23<=9|Kod23>=20))|
+                              (Kod1=="B"&(Kod23<=9|
+                                            (Kod23>=25&Kod23<=89)|
+                                            (Kod23>=91&Kod23<=93)|
+                                            (Kod23>=95&Kod23<=99)|
+                                            (KOD10%in%c("B940", "B941", "B948",
+                                                        "B949", "B9481"))))]$KOD10,
+              EurostatCode = "A_B_OTH",
+              Name = paste0("Egyéb fertőző és parazitás betegségek (A00-A09, A20-B09, B25-B89, ",
+                            "B91-B94.1, B94.8-B99)")),
+         list(ICD = ICDData[Kod1=="C"|(Kod1=="D"&Kod23<=48)]$KOD10,
+              EurostatCode = "C00-D48", Name = "Daganatok (C00-D48)"),
+         list(ICD = ICDData[Kod1=="C"]$KOD10,
+              EurostatCode = "C", Name = "Rosszindulatú daganatok (C00-C97)"),
+         list(ICD = ICDData[Kod1=="C"&(Kod23>=0&Kod23<=14)]$KOD10,
+              EurostatCode = "C00-C14",
+              Name = "Az ajak, a szájüreg és garat rosszindulatú daganatai (C00-C14)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==15]$KOD10,
+              EurostatCode = "C15", Name = "A nyelőcső rosszindulatú daganata (C15)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==16]$KOD10,
+              EurostatCode = "C16", Name = "A gyomor rosszindulatú daganata (C16)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23>=18&Kod23<=21]$KOD10,
+              EurostatCode = "C18-C21",
+              Name = "A vastagbél, végbél és a végbélnyílás rosszindulatú daganatai (C18-C21)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==22]$KOD10,
+              EurostatCode = "C22",
+              Name = "A máj és intrahepaticus epeutak rosszindulatú daganata (C22)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==25]$KOD10,
+              EurostatCode = "C25", Name = "A hasnyálmirigy rosszindulatú daganata (C25)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==32]$KOD10,
+              EurostatCode = "C32", Name = "A gége rosszindulatú daganata (C32)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23>=33&Kod23<=34]$KOD10,
+              EurostatCode = "C33_C34",
+              Name = "A légcső, a hörgő és a tüdő rosszindulatú daganatai (C33-C34)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==43]$KOD10,
+              EurostatCode = "C43", Name = "A bőr rosszindulatú melanomája (C43)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==50]$KOD10,
+              EurostatCode = "C50", Name = "Az emlő rosszindulatú daganata (C50)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==53]$KOD10,
+              EurostatCode = "C53", Name = "A méhnyak rosszindulatú daganata (C53)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23>=54&Kod23<=55]$KOD10,
+              EurostatCode = "C54_C55",
+              Name = paste0("A méhtest és a méh nem meghatározott részének rosszindulatú ",
+                            "daganatai (C54-55)")),
+         list(ICD = ICDData[Kod1=="C"&Kod23==56]$KOD10,
+              EurostatCode = "C56", Name = "A petefészek rosszindulatú daganata (C56)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==61]$KOD10,
+              EurostatCode = "C61", Name = "A prostata rosszindulatú daganata (C61)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==64]$KOD10,
+              EurostatCode = "C64",
+              Name = "A vese rosszindulatú daganata, kivéve a vesemedencét (C64)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23==67]$KOD10,
+              EurostatCode = "C67", Name = "A húgyhólyag rosszindulatú daganata (C67)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23>=70&Kod23<=72]$KOD10,
+              EurostatCode = "C70-C72",
+              Name = paste0("Az agyburkok, az agy, a gerincvelő, az agyidegek és a központi ",
+                            "idegrendszer egyéb részeinek rosszindulatú daganatai (C70-C72)")),
+         list(ICD = ICDData[Kod1=="C"&Kod23==73]$KOD10,
+              EurostatCode = "C73", Name = "A pajzsmirigy rosszindulatú daganata (C73)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23>=81&Kod23<=86]$KOD10,
+              EurostatCode = "C81-C86", Name = "Hodgkin kór és lymphomák (C81-C86)"),
+         list(ICD = ICDData[Kod1=="C"&Kod23>=91&Kod23<=95]$KOD10,
+              EurostatCode = "C91-C95", Name = "Leukémia (C91-C95)"),
+         list(ICD = ICDData[Kod1=="C"&(Kod23==88|Kod23==90|Kod23==96)]$KOD10,
+              EurostatCode = "C88_C90_C96",
+              Name = paste0("A nyirok-, a vérképző- és kapcsolódó szövetek egyéb rosszindulatú ",
+                            "daganatai (C88, C90, C96)")),
+         list(ICD = ICDData[Kod1=="C"&
+                              (Kod23==17|(Kod23>=23&Kod23<=24)|(Kod23>=26&Kod23<=31)|
+                                 (Kod23>=37&Kod23<=41)|(Kod23>=44&Kod23<=49)|
+                                 (Kod23>=51&Kod23<=52)|(Kod23>=57&Kod23<=60)|
+                                 (Kod23>=62&Kod23<=63)|(Kod23>=65&Kod23<=66)|
+                                 (Kod23>=68&Kod23<=69)|(Kod23>=74&Kod23<=80)|Kod23==97)]$KOD10,
+              EurostatCode = "C_OTH",
+              Name = paste0("Egyéb rosszindulatú daganatok (C17, C23-C24, C26-C31, C37-C41, ",
+                            "C44-C49, C51-C52, C57-C60, C62-C63, C65-C66, C68-C69, C74-C80, ",
+                            "C97)")),
+         list(ICD = ICDData[Kod1=="D"&Kod23>=0&Kod23<=48]$KOD10,
+              EurostatCode = "D00-D48",
+              Name = paste0("In situ, jóindulatú, vagy bizonytalan vagy ismeretlen viselkedésű ",
+                            "daganatok (D00-D48)")),
+         list(ICD = ICDData[Kod1=="D"&Kod23>=50&Kod23<=89]$KOD10,
+              EurostatCode = "D50-D89",
+              Name = paste0("A vér és a vérképző szervek betegségei és az immunrendszert érintő ",
+                            "egyéb rendellenességek (D50-D89)")),
+         list(ICD = ICDData[Kod1=="E"&Kod23>=0&Kod23<=89]$KOD10,
+              EurostatCode = "E",
+              Name = "Endokrin, táplálkozási és anyagcsere betegségek (E00-E89)"),
+         list(ICD = ICDData[Kod1=="E"&Kod23>=10&Kod23<=14]$KOD10,
+              EurostatCode = "E10-E14", Name = "Cukorbetegség (E10-E14)"),
+         list(ICD = ICDData[Kod1=="E"&((Kod23>=0&Kod23<=7)|(Kod23>=15&Kod23<=89))]$KOD10,
+              EurostatCode = "E_OTH",
+              Name = "Egyéb endokrin, táplálkozási és anyagcsere betegségek (E00-E07, E15-E89)"),
+         list(ICD = ICDData[Kod1=="F"&Kod23>=1&Kod23<=99]$KOD10,
+              EurostatCode = "F", Name = "Mentális- és viselkedészavarok (F01-F99)"),
+         list(ICD = ICDData[Kod1=="F"&(Kod23==1|Kod23==3)]$KOD10,
+              EurostatCode = "F01_F03", Name = "Dementia (F01, F03)"),
+         list(ICD = ICDData[Kod1=="F"&Kod23==10]$KOD10,
+              EurostatCode = "F10", Name = "Alkohol okozta mentális- és viselkedészavarok (F10)"),
+         list(ICD = ICDData[Kod1=="F"&((Kod23>=11&Kod23<=16)|(Kod23>=18&Kod23<=19))]$KOD10,
+              EurostatCode = "TOXICO",
+              Name = paste0("Drog és pszichoaktív anyagok használata által okozott mentális- és ",
+                            "viselkedészavarok (F11-F16, F18-F19)")),
+         list(ICD = ICDData[Kod1=="F"&((Kod23>=4&Kod23<=9)|(Kod23==17)|
+                                         (Kod23>=20&Kod23<=99))]$KOD10,
+              EurostatCode = "F_OTH",
+              Name = "Egyéb mentális- és viselkedészavarok (F04-F09, F17, F20-F99)"),
+         list(ICD = ICDData[Kod1=="G"|Kod1=="H"]$KOD10,
+              EurostatCode = "G_H",
+              Name = "Az idegrendszer és az érzékszervek betegségei (G00-H95)"),
+         list(ICD = ICDData[Kod1=="G"&Kod23==20]$KOD10,
+              EurostatCode = "G20", Name = "Parkinson-kór (G20)"),
+         list(ICD = ICDData[Kod1=="G"&Kod23==30]$KOD10,
+              EurostatCode = "G30", Name = "Alzheimer-kór (G30)"),
+         list(ICD = ICDData[(Kod1=="G"&((Kod23>=0&Kod23<=12)|(Kod23==14)|(Kod23>=21&Kod23<=25)|
+                                          (Kod23>=31)))|Kod1=="H"]$KOD10,
+              EurostatCode = "G_H_OTH",
+              Name = paste0("Az idegrendszer és az érzékszervek egyéb betegségei (G00-G12, G14, ",
+                            "G21-G25, G31-H95)")),
+         list(ICD = ICDData[Kod1=="I"&Kod23>=0&Kod23<=99]$KOD10,
+              EurostatCode = "I", Name = "A keringési rendszer betegségei (I00-I99)"),
+         list(ICD = ICDData[Kod1=="I"&Kod23>=20&Kod23<=25]$KOD10,
+              EurostatCode = "I20-I25", Name = "Ischaemiás szívbetegségek (I20-I25)"),
+         list(ICD = ICDData[Kod1=="I"&Kod23>=21&Kod23<=22]$KOD10,
+              EurostatCode = "I21_I22",
+              Name = "Heveny szívizomelhalás és ismétlődő szívizomelhalás (I21-I22)"),
+         list(ICD = ICDData[Kod1=="I"&((Kod23==20)|(Kod23>=23&Kod23<=25))]$KOD10,
+              EurostatCode = "I20_I23-I25",
+              Name = "Egyéb ischaemiás szívbetegségek (I20, I23-I25)"),
+         list(ICD = ICDData[Kod1=="I"&Kod23>=30&Kod23<=51]$KOD10,
+              EurostatCode = "I30-I51", Name = "A szívbetegség egyéb formái (I30-I51)"),
+         list(ICD = ICDData[Kod1=="I"&Kod23>=60&Kod23<=69]$KOD10,
+              EurostatCode = "I60-I69", Name = "Cerebrovaszkuláris betegségek (I60-I69)"),
+         list(ICD = ICDData[Kod1=="I"&((Kod23>=0&Kod23<=15)|(Kod23>=26&Kod23<=28)|
+                                         (Kod23>=70&Kod23<=99))]$KOD10,
+              EurostatCode = "I_OTH",
+              Name = "A keringési rendszer egyéb betegségei (I00-I15, I26-I28, I70-I99)"),
+         list(ICD = ICDData[Kod1=="J"&Kod23>=0&Kod23<=99]$KOD10,
+              EurostatCode = "J", Name = "A légzőrendszer betegségei (J00-J99)"),
+         list(ICD = ICDData[Kod1=="J"&Kod23>=9&Kod23<=11]$KOD10,
+              EurostatCode = "J09-J11", Name = "Influenza (J09-J11)"),
+         list(ICD = ICDData[Kod1=="J"&Kod23>=12&Kod23<=18]$KOD10,
+              EurostatCode = "J12-J18", Name = "Tüdőgyulladás (J12-J18)"),
+         list(ICD = ICDData[Kod1=="J"&Kod23>=40&Kod23<=47]$KOD10,
+              EurostatCode = "J40-J47", Name = "Idült alsó légúti betegségek (J40-J47)"),
+         list(ICD = ICDData[Kod1=="J"&Kod23>=45&Kod23<=46]$KOD10,
+              EurostatCode = "J45_J46", Name = "Asztma (J45-J46)"),
+         list(ICD = ICDData[Kod1=="J"&((Kod23>=40&Kod23<=44)|(Kod23==47))]$KOD10,
+              EurostatCode = "J40-J44_J47",
+              Name = "Egyéb idült alsó légúti megbetegedések (J40-J44, J47)"),
+         list(ICD = ICDData[Kod1=="J"&((Kod23>=0&Kod23<=6)|(Kod23>=20&Kod23<=39)|
+                                         (Kod23>=60&Kod23<=99))]$KOD10,
+              EurostatCode = "J_OTH",
+              Name = "A légzőrendszer egyéb betegségei (J00-J06, J20-J39, J60-J99)"),
+         list(ICD = ICDData[Kod1=="K"&Kod23>=0&Kod23<=92]$KOD10,
+              EurostatCode = "K", Name = "Az emésztőrendszer betegségei (K00-K92)"),
+         list(ICD = ICDData[Kod1=="K"&Kod23>=25&Kod23<=28]$KOD10,
+              EurostatCode = "K25-K28",
+              Name = "Gyomor-, nyombél-, pepticus- és gastrojejunalis fekély (K25-K28)"),
+         list(ICD = ICDData[Kod1=="K"&((Kod23==70)|(Kod23>=73&Kod23<=74))]$KOD10,
+              EurostatCode = "K70_K73_K74",
+              Name = paste0("Idült májgyulladás, májfibrózis és májzsugorodás, valamint ",
+                            "alkoholos májbetegség (K70, K73-K74)")),
+         list(ICD = ICDData[Kod1=="K"&((Kod23>=0&Kod23<=22)|(Kod23>=29&Kod23<=66)|
+                                         (Kod23>=71&Kod23<=72)|(Kod23>=75&Kod23<=92))]$KOD10,
+              EurostatCode = "K_OTH",
+              Name = "Az emésztőrendszer egyéb betegségei (K00-K22, K29-K66, K71-K72, K75-K92)"),
+         list(ICD = ICDData[Kod1=="L"&Kod23>=0&Kod23<=99]$KOD10,
+              EurostatCode = "L", Name = "A bőr és a bőralatti szövet betegségei (L00-L99)"),
+         list(ICD = ICDData[Kod1=="M"&Kod23>=0&Kod23<=99]$KOD10,
+              EurostatCode = "M",
+              Name = "A csont-izomrendszer és kötőszövet betegségei (M00-M99)"),
+         list(ICD = ICDData[Kod1=="M"&((Kod23>=05&Kod23<=06)|(Kod23>=15&Kod23<=19))]$KOD10,
+              EurostatCode = "RHEUM_ARTHRO",
+              Name = "Rheumatoid arthritis és arthrosis (M05-M06, M15-M19)"),
+         list(ICD = ICDData[Kod1=="M"&((Kod23>=0&Kod23<=2)|(Kod23>=8&Kod23<=13)|
+                                         (Kod23>=20&Kod23<=99))]$KOD10,
+              EurostatCode = "M_OTH",
+              Name = paste0("A csont-izomrendszer és kötőszövet egyéb betegségei (M00-M02, ",
+                            "M08-M13, M20-M99)")),
+         list(ICD = ICDData[Kod1=="N"&Kod23>=0&Kod23<=99]$KOD10,
+              EurostatCode = "N", Name = "Az urogenitális rendszer megbetegedései (N00-N99)"),
+         list(ICD = ICDData[Kod1=="N"&Kod23>=0&Kod23<=29]$KOD10,
+              EurostatCode = "N00-N29", Name = "Vese és az ureter betegségei (N00-N29)"),
+         list(ICD = ICDData[Kod1=="N"&Kod23>=30&Kod23<=99]$KOD10,
+              EurostatCode = "N_OTH",
+              Name = "Az urogenitális rendszer egyéb betegségei (N30-N99)"),
+         list(ICD = ICDData[Kod1=="O"&Kod23>=0&Kod23<=99]$KOD10,
+              EurostatCode = "O",
+              Name = "A terhesség, a szülés és a gyermekágy komplikációi (O00-O99)"),
+         list(ICD = ICDData[Kod1=="P"&Kod23>=0&Kod23<=96]$KOD10,
+              EurostatCode = "P",
+              Name = "A perinatális szakban keletkező bizonyos állapotok (P00-P96)"),
+         list(ICD = ICDData[Kod1=="Q"&Kod23>=0&Kod23<=99]$KOD10,
+              EurostatCode = "Q",
+              Name = paste0("Veleszületett rendellenességek, deformitások és ",
+                            "kromoszómaabnormitások (Q00-Q99)")),
+         list(ICD = ICDData[Kod1=="R"&Kod23>=0&Kod23<=99]$KOD10,
+              EurostatCode = "R",
+              Name = paste0("Máshova nem osztályozott panaszok, tünetek és kóros klinikai és ",
+                            "laboratóriumi leletek (R00-R99)")),
+         list(ICD = ICDData[Kod1=="R"&Kod23==95]$KOD10,
+              EurostatCode = "R95", Name = "Hirtelen csecsemőhalál szindróma  (R95)"),
+         list(ICD = ICDData[Kod1=="R"&Kod23>=96&Kod23<=99]$KOD10,
+              EurostatCode = "R96-R99",
+              Name = paste0("Egyéb hirtelen halál ismeretlen okból, halál tanú nélkül, a ",
+                            "halálozás rosszul meghatározott és külön megnevezés nélküli okai ",
+                            "(R96-R99)")),
+         list(ICD = ICDData[Kod1=="R"&Kod23>=0&Kod23<=94]$KOD10,
+              EurostatCode = "R_OTH",
+              Name = paste0("Egyéb máshova nem osztályozott panaszok, tünetek és kóros klinikai ",
+                            "és laboratóriumi leletek (R00-R94)")),
+         list(ICD = ICDData[(Kod1=="V")|(Kod1=="W")|(Kod1=="X")|(Kod1=="Y"&Kod23>=0&Kod23<=89)]$KOD10,
+              EurostatCode = "V01-Y89", Name = "A morbiditás és mortalitás külső okai (V00-Y89)"),
+         list(ICD = ICDData[(Kod1=="V")|(Kod1=="W")|(Kod1=="X"&Kod23>=0&Kod23<=59)|
+                              (Kod1=="Y"&Kod23>=85&Kod23<=86)]$KOD10,
+              EurostatCode = "ACC", Name = "Balesetek (V01-X59, Y85-Y86)"),
+         list(ICD = ICDData[Kod1=="V"|(Kod1=="Y"&Kod23==85)]$KOD10,
+              EurostatCode = "V_Y85", Name = "Közlekedési balesetek (V01-V99, Y85)"),
+         list(ICD = ICDData[Kod1=="W"&Kod23>=0&Kod23<=19]$KOD10,
+              EurostatCode = "W00-W19", Name = "Esések (W00-W19)"),
+         list(ICD = ICDData[Kod1=="W"&Kod23>=65&Kod23<=74]$KOD10,
+              EurostatCode = "W65-W74",
+              Name = "Balesetszerű vízbefulladás vagy elmerülés (W65-W74)"),
+         list(ICD = ICDData[Kod1=="X"&Kod23>=40&Kod23<=49]$KOD10,
+              EurostatCode = "X40-X49",
+              Name = "Káros anyagok által okozott balesetszerű mérgezés (X40-X49)"),
+         list(ICD = ICDData[(Kod1=="W"&Kod23>=20&Kod23<=64)|(Kod1=="W"&Kod23>=75)|
+                              (Kod1=="X"&Kod23<=39)|(Kod1=="X"&Kod23>=50&Kod23<=59)|
+                              (Kod1=="Y"&Kod23==86)]$KOD10,
+              EurostatCode = "ACC_OTH",
+              Name = "Egyéb balesetek (W20-W64, W75-X39, X50-X59, Y86)"),
+         list(ICD = ICDData[(Kod1=="X"&Kod23>=60&Kod23<=84)|(KOD10=="Y8700")]$KOD10,
+              EurostatCode = "X60-X84_Y870", Name = "Szándékos önártalom (X60-X84, Y87.0)"),
+         list(ICD = ICDData[(Kod1=="X"&Kod23>=85)|(Kod1=="Y"&Kod23<=9)|(KOD10=="Y8710")]$KOD10,
+              EurostatCode = "X85-Y09_Y871", Name = "Testi sértés (X85-Y09, Y87.1)"),
+         list(ICD = ICDData[(Kod1=="Y"&Kod23>=10&Kod23<=34)|(KOD10=="Y8720")]$KOD10,
+              EurostatCode = "Y10-Y34_Y872",
+              Name = "Nem meghatározott szándékú esemény (Y10-Y34, Y87.2)"),
+         list(ICD = ICDData[(Kod1=="Y"&Kod23>=35&Kod23<=84)|
+                              (Kod1=="Y"&Kod23>=88&Kod23<=89)]$KOD10,
+              EurostatCode = "V01-Y89_OTH",
+              Name = paste0("Törvényes beavatkozás és háborús cselekmények, az orvosi ellátás ",
+                            "szövődményei, egyéb külső ok (Y35-Y84, Y88-Y89)"))),
+  Individual = lapply(1:nrow(ICDData), function(i)
+    list(ICD = ICDData[i]$KOD10, EurostatCode = NA,
+         Name = paste0(ICDData[i]$KOD10, " - ", ICDData[i]$NEV))),
+  Avoidable = list(
+    list(ICD = ICDData[(Kod1=="A"&((Kod23>=0&Kod23<=9)|(Kod23>=50&Kod23<=60)|
+                                     (Kod23>=15&Kod23<=19)|
+                                     Kod23%in%c(35, 36, 80, 37, 39, 63, 64, 33, 34)|
+                                     KOD10%in%c("A4030", "A4130", "A4920")))|
+                         (Kod1=="B"&((Kod23>=15&Kod23<=19)|(Kod23>=20&Kod23<=24)|
+                                       (Kod23>=50&Kod23<=54)|Kod23%in%c(1, 5, 6, 90)))|
+                         (Kod1=="C"&((Kod23>=0&Kod23<=14)|(Kod23>=33&Kod23<=34)|
+                                       Kod23%in%c(15, 16, 22, 45, 43, 67, 53)))|
+                         (Kod1=="D"&((Kod23>=50&Kod23<=53)))|
+                         (Kod1=="E"&((Kod23>=10&Kod23<=14)|KOD10=="E2440"))|
+                         (Kod1=="F"&(Kod23==10|(Kod23>=11&Kod23<=16)|(Kod23>=18&Kod23<=19)))|
+                         (Kod1=="G"&(KOD10%in%c("G0000", "G0010", "G3120", "G6210", "G7210")))|
+                         (Kod1=="I"&((Kod23>=10&Kod23<=13)|(Kod23>=20&Kod23<=25)|
+                                       (Kod23>=60&Kod23<=69)|
+                                       Kod23%in%c(71, 15, 70)|KOD10%in%c("I7390", "I4260")))|
+                         (Kod1=="J"&((Kod23>=9&Kod23<=11)|(Kod23>=13&Kod23<=14)|
+                                       (Kod23>=40&Kod23<=44)|(Kod23>=60&Kod23<=64)|
+                                       (Kod23>=66&Kod23<=70)|Kod23%in%c(65, 82, 92)))|
+                         (Kod1=="K"&(Kod23%in%c(70, 73)|
+                                       KOD10%in%c("K2920", "K8520", "K8600", "K7400",
+                                                  "K7410", "K7420", "K7460")))|
+                         (Kod1=="Q"&(Kod23%in%c(0, 1, 5)|KOD10=="Q8600"))|
+                         (Kod1=="R"&(KOD10=="R7800"))|
+                         (Kod1=="U"&(KOD10%in%c("U0710", "U0720")))|
+                         (Kod1=="V"&((Kod23>=0&Kod23<=99)))|
+                         (Kod1=="W")|
+                         (Kod1=="X"&((Kod23<=39)|(Kod23>=46&Kod23<=59)|(Kod23>=66&Kod23<=84)|
+                                       (Kod23>=40&Kod23<=44)|(Kod23>=60&Kod23<=64)|(Kod23>=86)|
+                                       Kod23%in%c(45, 65, 85)))|
+                         (Kod1=="Y"&((Kod23<=9)|(Kod23>=16&Kod23<=34)|
+                                       (Kod23>=10&Kod23<=14)|Kod23==15))]$KOD10,
+         EurostatCode = NA, Name = "Megelőzhető halálozás"),
+    list(ICD = ICDData[
+      (Kod1=="A"&((Kod23>=15&Kod23<=19)|Kod23%in%c(38, 46)|(Kod23==40&KOD10!="A4030")|
+                    (Kod23==41&KOD10!="A4130")|KOD10%in%c("A4810", "A4910")))|
+        (Kod1=="B"&(Kod23==90))|
+        (Kod1=="D"&((Kod23>=10&Kod23<=36)))|
+        (Kod1=="E"&(Kod23==27|(Kod23>=10&Kod23<=14)|(Kod23>=0&Kod23<=7)|
+                      (Kod23>=24&Kod23<=25&KOD10!="E2440")))|
+        (Kod1=="C"&(Kod23%in%c(53, 50, 54, 55, 62, 73, 81)|(Kod23>=18&Kod23<=21)|
+                      KOD10%in%c("C9100", "C9101", "C9102", "C9110")))|
+        (Kod1=="G"&(KOD10%in%c("G0020", "G0030", "G0080", "G0090")|Kod23%in%c(3, 40, 41)))|
+        (Kod1=="I"&((Kod23%in%c(71, 15, 70, 26, 80))|(Kod23>=10&Kod23<=13)|(Kod23>=20&Kod23<=25)|
+           (Kod23>=60&Kod23<=69)|(Kod23>=0&Kod23<=9)|KOD10%in%c("I7390", "I8290")))|
+        (Kod1=="J"&(Kod23%in%c(65, 12, 15, 80, 81, 85, 86, 90, 93, 94)|(Kod23>=0&Kod23<=6)|
+                      (Kod23>=30&Kod23<=39)|(Kod23>=16&Kod23<=18)|(Kod23>=20&Kod23<=22)|
+                      (Kod23>=45&Kod23<=47)))|
+        (Kod1=="K"&((Kod23>=25&Kod23<=28)|(Kod23>=35&Kod23<=38)|(Kod23>=40&Kod23<=46)|
+                      (Kod23>=80&Kod23<=81)|(Kod23>=82&Kod23<=83)|
+                      KOD10%in%c("K8500", "K8510", "K8530", "K8580", "K8590",
+                                 "K8610", "K8620", "K8630", "K8680", "K8681", "K8690")))|
+        (Kod1=="L"&(Kod23==3))|
+        (Kod1=="N"&(Kod23%in%c(13, 35, 23, 25, 40)|(Kod23>=0&Kod23<=7)|(Kod23>=20&Kod23<=21)|
+                      (Kod23>=17&Kod23<=19)|(Kod23>=26&Kod23<=27)|(Kod23>=70&Kod23<=73)|
+                      KOD10%in%c("N3410", "N7500", "N7510", "N7640", "N7660")))|
+        (Kod1=="O"&((Kod23>=0&Kod23<=99)))|
+        (Kod1=="P"&((Kod23>=0&Kod23<=96)))|
+        (Kod1=="Q"&((Kod23>=20&Kod23<=28)))|
+        (Kod1=="Y"&((Kod23>=40&Kod23<=59)|(Kod23>=60&Kod23<=69)|(Kod23>=83&Kod23<=84)|
+                      (Kod23>=70&Kod23<=82)))]$KOD10,
+      EurostatCode = NA, Name = "Kezeléssel elkerülhető halálozás")))
+
+ICDGroups$Individual <- setNames(ICDGroups$Individual, sapply(ICDGroups$Individual, function(gr) gr[["Name"]]))
+ICDGroups$Groups <- setNames(ICDGroups$Groups, sapply(ICDGroups$Groups, function(gr) gr[["Name"]]))
+ICDGroups$Avoidable <- setNames(ICDGroups$Avoidable, sapply(ICDGroups$Avoidable, function(gr) gr[["Name"]]))
+
+ICDGroups$Individual <- lapply(ICDGroups$Individual, function(l) c(l, list(Weights = rep(1, length(l$ICD)))))
+ICDGroups$Groups <- lapply(ICDGroups$Groups, function(l) c(l, list(Weights = rep(1, length(l$ICD)))))
+ICDGroups$Avoidable <- lapply(ICDGroups$Avoidable, function(l) c(l, list(Weights = rep(1, length(l$ICD)))))
+
+ICDGroups$Avoidable <- lapply(ICDGroups$Avoidable, function(l) if(l$Name == "Megelőzhető halálozás") {
+  c(l[c("ICD", "Name", "EurostatCode")],
+    list(Weights = replace(
+      l$Weights,
+      which(l$ICD%in%ICDData[
+        (Kod1=="A"&((Kod23>=15&Kod23<=19)))|(Kod1=="B"&(Kod23==90))|(Kod1=="J"&(Kod23==65))|
+          (Kod1=="C"&(Kod23==53))|(Kod1=="E"&((Kod23>=10&Kod23<=14)))|
+          (Kod1=="I"&(Kod23%in%c(71, 15, 70)|(Kod23>=10&Kod23<=13)|(Kod23>=20&Kod23<=25)|
+                        (Kod23>=60&Kod23<=69)|(KOD10=="I7390")))]$KOD10),
+      0.5)))
+} else l)
+
+ICDGroups$Avoidable <- lapply(ICDGroups$Avoidable, function(l) if(l$Name == "Kezeléssel elkerülhető halálozás") {
+  c(l[c("ICD", "Name", "EurostatCode")],
+    list(Weights = replace(
+      l$Weights,
+      which(l$ICD%in%ICDData[
+        (Kod1=="A"&((Kod23>=15&Kod23<=19)))|(Kod1=="B"&(Kod23==90))|(Kod1=="J"&(Kod23==65))|
+          (Kod1=="C"&(Kod23==53))|(Kod1=="E"&((Kod23>=10&Kod23<=14)))|
+          (Kod1=="I"&(Kod23%in%c(71, 15, 70)|(Kod23>=10&Kod23<=13)|(Kod23>=20&Kod23<=25)|
+                        (Kod23>=60&Kod23<=69)|(KOD10=="I7390")))]$KOD10),
+      0.5)))
+} else l)
 ```
+
+Mint látható, három nagy kategóriát hoztam létre: szerepeltettem az
+egyedi kódokat, az említett nagy kategóriákat, és itt hozta létre az
+elkerülhető halálozás
+[kódjait](https://ec.europa.eu/eurostat/cache/metadata/Annexes/hlth_cdeath_sims_an_5.pdf)
+is.
 
 Ezután az adatok kimenthetőek:
 
@@ -1828,25 +2008,6 @@ PopData$Age <- as.numeric(PopData$Age)
 
 A másik az Eurostat, `demo_pjan` tábla:
 
-``` r
-PopDataES <- data.table(eurostat::get_eurostat("demo_pjan", use.data.table = TRUE))
-```
-
-    ## Table demo_pjan cached at C:\Users\FERENC~1\AppData\Local\Temp\RtmpuEHioH/eurostat/ab2d180a268a83d76ae3b569e99457aa.rds
-
-``` r
-PopDataES$Year <- lubridate::year(PopDataES$TIME_PERIOD)
-PopDataES <- PopDataES[Year >= 1955]
-PopDataES <- PopDataES[geo != "DE"]
-PopDataES[geo == "DE_TOT"]$geo <- "DE" # a halálozási adatok is egész Németországra vonatkoznak
-PopDataES <- PopDataES[!geo%in%c("EA19", "EA20", "EEA30_2007", "EEA31", "EFTA", "EU27_2007", 
-                                 "EU27_2020", "EU28", "FX", "XK")]
-PopDataES$iso3c <- countrycode::countrycode(PopDataES$geo, "eurostat", "iso3c")
-PopDataES <- PopDataES[iso3c%in%unique(RawData$iso3c)]
-PopDataES <- PopDataES[age != "TOTAL" & sex != "T"]
-PopDataES[age == "UNK"&values>0][order(values)]
-```
-
     ##       freq   unit    age    sex    geo TIME_PERIOD values  Year  iso3c
     ##     <char> <char> <char> <char> <char>      <Date>  <num> <num> <char>
     ##  1:      A     NR    UNK      M     HR  2011-01-01      1  2011    HRV
@@ -1937,29 +2098,9 @@ PopDataES[age == "UNK"&values>0][order(values)]
     ## 86:      A     NR    UNK      F     LT  1970-01-01    937  1970    LTU
     ##       freq   unit    age    sex    geo TIME_PERIOD values  Year  iso3c
 
-``` r
-sum(PopDataES[age == "UNK"]$values) # nem sok, elhagyjuk
-```
-
     ## [1] 19843
 
-``` r
-PopDataES <- PopDataES[age != "UNK"]
-PopDataES$age <- substring(PopDataES$age, 2)
-PopDataES[age == "_LT1"]$age <- "0"
-PopDataES$sex <- factor(PopDataES$sex, levels = c("M", "F"), labels = c("Férfi", "Nő"))
-
-temp <- merge(PopData[, .(iso3c, Age = as.character(Age), Sex, Year, PopHMD = value)],
-              PopDataES[, .(iso3c, Age = age, Sex = sex, Year, PopES = values)],
-              by = c("iso3c", "Year", "Age", "Sex"), all = TRUE)
-plot(PopHMD ~ PopES, data = temp[!is.na(PopHMD)&!is.na(PopES)])
-```
-
 ![](README_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->
-
-``` r
-temp[is.na(PopHMD)&!is.na(PopES)&Age!="_OPEN"][order(Year)]
-```
 
     ##         iso3c  Year    Age    Sex PopHMD  PopES
     ##        <char> <num> <char> <fctr>  <num>  <num>
@@ -1974,10 +2115,6 @@ temp[is.na(PopHMD)&!is.na(PopES)&Age!="_OPEN"][order(Year)]
     ## 16594:    SVK  2023     98     Nő     NA    378
     ## 16595:    SVK  2023     99  Férfi     NA    155
     ## 16596:    SVK  2023     99     Nő     NA    259
-
-``` r
-temp[!is.na(PopHMD)&is.na(PopES)]
-```
 
     ## Key: <iso3c, Year, Age, Sex>
     ##          iso3c  Year    Age    Sex    PopHMD PopES
@@ -1994,32 +2131,11 @@ temp[!is.na(PopHMD)&is.na(PopES)]
     ## 248210:    X12  2022     99  Férfi    147.05    NA
     ## 248211:    X12  2022     99     Nő    538.35    NA
 
-``` r
-PopDataES <- PopDataES[iso3c %in% unique(PopData$iso3c)] # szigorúan csak kiegészítjük a HMD-t
-
-PopDataES <- merge(PopDataES, unique(PopData[, .(iso3c, Year, HMD = TRUE)]),
-                   by = c("iso3c", "Year"), all.x = TRUE)
-PopDataES <- PopDataES[is.na(HMD)]
-
-PopDataES[iso3c=="GRC"&Year==1960]
-```
-
     ## Key: <iso3c, Year>
     ##     iso3c  Year   freq   unit    age    sex    geo TIME_PERIOD values    HMD
     ##    <char> <num> <char> <char> <char> <fctr> <char>      <Date>  <num> <lgcl>
     ## 1:    GRC  1960      A     NR  _OPEN     Nő     EL  1960-01-01  71533     NA
     ## 2:    GRC  1960      A     NR  _OPEN  Férfi     EL  1960-01-01  52991     NA
-
-``` r
-PopDataES <- PopDataES[!((iso3c == "GRC")&(Year == 1960))] # nincs rá egyáltalán semmilyen életkori bontás
-
-PopDataES <- PopDataES[!(iso3c == "GRC" & Year>=1961 & Year <= 1978)] # ezt nem lenne kötelező kidobni, később megmenthető,
-# most csak azért, hogy mindegyik meglegyen 95 évig
-
-PopDataES <- merge(PopDataES, PopDataES[, .(OPENYear = max(as.numeric(age[age != "_OPEN"]))) , .(iso3c, Year)], by = c("iso3c", "Year"))
-PopDataES[age == "_OPEN"]$age <- PopDataES[age == "_OPEN"]$OPENYear + 1
-PopDataES$age <- as.numeric(PopDataES$age)
-```
 
 Majd egyesítjük őket:
 
@@ -2083,9 +2199,253 @@ res <- rbind(cbind(rd[, 1:3], Rtsne::Rtsne(rd[, -(1:3)])$Y, Method = "t-SNE"),
 saveRDS(res, "./procdata/dimredvizData.rds")
 ```
 
-## Az adatok validációja
+## Az adatok és a számítás validációja
 
-TODO
+Az adatok és a számításokat nagyrészt tudjuk validálni az Eurostat
+adatszolgáltatásának köszönhetően. (A „nagyrészt” azt jelenti, hogy az
+egyedi kódokat nem lehet az Eurostat-tól lekérdezni, így az nem
+validálható, csak a fő kategóriák, de mivel a fő kategóriákat most
+manuálisan számoljuk az egyedi kódokból, így ha az előbbiek stimmelnek,
+akkor igen valószínű, hogy az utóbbiak is.) Külön Eurostat táblából
+kérdezhetjük le a mortalitást (ezen belül is külön lesz az abszolút
+szám, a nyers ráta és a standardizált ráta), az elvesztett életéveket és
+a megelőzhető halálozást.
+
+Elsőként betöltjük a weboldal mögött lévő kód számításokat végző részét:
+
+``` r
+dataInputFun <- function(category, multipleICD, ICDSingle, ICDMultiple,
+                         multipleCountry, countrySingle, countryMultiple,
+                         indicator, yllMethod, yllPyllTarget,
+                         strat, metric, ordVar, byvarAdd,
+                         yearFilter, sexFilter, ageFilter, comp, valid) {
+  
+  rd <- RawData
+  rdAll <- RawDataAll
+  
+  icd <- if(multipleICD == "Single") ICDSingle else ICDMultiple
+  if(is.null(icd)) return(NULL)
+  icdtable <- rbindlist(lapply(icd, function(icdcode)
+    with(ICDGroups[[category]][[icdcode]], data.table(CauseGroup = Name, Cause = ICD,
+                                                      Weights, EurostatCode))))
+  
+  if(!is.na(multipleCountry)) {
+    country <- if((multipleICD == "MultiIndiv" && !comp && !valid) || (multipleCountry == "Single"))
+      countrySingle else countryMultiple
+    if(is.null(country)) return(NULL)
+    
+    rd <- if(length(country) == 1) rd[iso3c == country] else rd[iso3c %in% country]
+    rdAll <- if(length(country) == 1) rdAll[iso3c == country] else rdAll[iso3c %in% country]
+  } else country <- NA
+  
+  if(!is.null(yearFilter)) {
+    yearSel <- seq(yearFilter[1], yearFilter[2], 1)
+    rd <- rd[Year %in% yearSel]
+    rdAll <- rdAll[Year %in% yearSel]
+  }
+  if(sexFilter != "Összesen") {
+    rd <- rd[Sex == sexFilter]
+    rdAll <- rdAll[Sex == sexFilter]
+  }
+  if((ageFilter != "Összesen") && (metric != "adjrate")) {
+    rd <- rd[Age == ageFilter]
+    rdAll <- rdAll[Age == ageFilter]
+  }
+  
+  rd <- merge(rd, icdtable, allow.cartesian = TRUE)
+  
+  if(multipleICD == "MultiSum") rd$CauseGroup <- "Összeg"
+  
+  rd <- rd[, .(value = round(sum(value*Weights))),
+           .(iso3c, Year, Sex, Age, Frmat, CauseGroup, EurostatCode)]
+  
+  rd <- merge(
+    data.table(base::merge.data.frame(rdAll, unique(rd[,.(CauseGroup, EurostatCode)]))),
+    rd, by = c("iso3c", "Year", "Sex", "Age", "Frmat", "CauseGroup", "EurostatCode"),
+    all.x = TRUE)
+  rd[is.na(value)]$value <- 0
+  
+  rd <- merge(rd, PopData, by = c("iso3c", "Year", "Sex", "Age", "Frmat"))
+  
+  if(category == "Avoidable") rd <- rd[AgeNum < 75]
+  
+  if(indicator == "yll" && yllMethod == "pyll")
+    rd$value <- rd$value * pmax(0, yllPyllTarget - rd$AgeNum)
+  
+  byvars <- c("iso3c", byvarAdd)
+  if(multipleICD != "MultiIndiv" && !is.na(strat) && multipleCountry == "Single")
+    byvars <- c(byvars, strat[strat != "None"])
+  
+  if(comp) rd$iso3c <- ifelse(rd$iso3c == "HUN", "HUN", "Comparator")
+  rd <- rd[, .(value = sum(value), Pop = sum(Pop)), setdiff(names(rd), c("value", "Pop"))]
+  
+  rd <- switch(metric,
+               "count" = rd[Aggregated == FALSE, .(value = sum(value)), byvars],
+               "cruderate" = rd[Aggregated == FALSE,
+                                .(value = sum(value)/sum(Pop)*1e5), byvars],
+               "adjrate" = merge(
+                 rd[, .(value = sum(value), Pop = sum(Pop)),
+                    c(byvars, "Frmat", "Age")],
+                 StdPop, by = c("Frmat", "Age"))[
+                   , as.list(epitools::ageadjust.direct(value, Pop, stdpop = StdPop)),
+                   byvars][, c(.SD, .(value = adj.rate*1e5))])
+  
+  if(!is.na(ordVar)) rd <- rd[order(rd[[ordVar]])]
+  
+  if(!comp) rd <- merge(rd, data.table(iso3c = CountryCodes,
+                                       CountryName = names(CountryCodes)))
+  
+  return(list(rd = rd, icd = icd, country = country))
+}
+```
+
+Kezdjük a mortalitási adatok validációjával, azon belül is az abszolút
+számokkal! Betöltjük az Eurostat adatokat és kikódoljuk a szükséges
+oszlopokat, hogy a saját adatformátumunkkal összekapcsolható legyen:
+
+``` r
+ESres <- as.data.table(eurostat::get_eurostat("hlth_cd_aro"))
+```
+
+    ## indexed 0B in  0s, 0B/sindexed 34.21MB in  0s, 170.57MB/sindexed 34.34MB in  0s, 170.62MB/sindexed 34.47MB in  0s, 170.71MB/sindexed 34.60MB in  0s, 170.79MB/sindexed 34.73MB in  0s, 170.88MB/sindexed 34.86MB in  0s, 170.99MB/sindexed 35.00MB in  0s, 171.08MB/sindexed 35.13MB in  0s, 171.16MB/sindexed 35.26MB in  0s, 171.29MB/sindexed 35.39MB in  0s, 171.37MB/sindexed 35.52MB in  0s, 171.45MB/sindexed 35.65MB in  0s, 171.56MB/sindexed 35.78MB in  0s, 171.68MB/sindexed 35.91MB in  0s, 171.79MB/sindexed 36.04MB in  0s, 171.89MB/sindexed 36.18MB in  0s, 171.97MB/sindexed 36.31MB in  0s, 171.94MB/sindexed 36.44MB in  0s, 172.04MB/sindexed 36.57MB in  0s, 172.10MB/sindexed 36.70MB in  0s, 172.16MB/sindexed 36.83MB in  0s, 172.00MB/sindexed 36.96MB in  0s, 171.72MB/sindexed 37.09MB in  0s, 171.81MB/sindexed 37.22MB in  0s, 171.91MB/sindexed 37.36MB in  0s, 172.01MB/sindexed 37.49MB in  0s, 172.11MB/sindexed 37.62MB in  0s, 172.24MB/sindexed 37.75MB in  0s, 172.33MB/sindexed 37.88MB in  0s, 172.43MB/sindexed 38.01MB in  0s, 172.49MB/sindexed 38.14MB in  0s, 172.55MB/sindexed 38.27MB in  0s, 172.65MB/sindexed 38.40MB in  0s, 172.75MB/sindexed 38.53MB in  0s, 172.84MB/sindexed 38.67MB in  0s, 172.96MB/sindexed 38.80MB in  0s, 173.05MB/sindexed 38.93MB in  0s, 173.15MB/sindexed 39.06MB in  0s, 173.27MB/sindexed 39.19MB in  0s, 173.31MB/sindexed 39.32MB in  0s, 173.11MB/sindexed 39.45MB in  0s, 173.10MB/sindexed 39.58MB in  0s, 173.20MB/sindexed 39.71MB in  0s, 173.30MB/sindexed 39.85MB in  0s, 173.40MB/sindexed 39.98MB in  0s, 172.98MB/sindexed 40.11MB in  0s, 173.01MB/sindexed 40.24MB in  0s, 173.08MB/sindexed 40.37MB in  0s, 173.17MB/sindexed 40.50MB in  0s, 173.26MB/sindexed 40.63MB in  0s, 173.35MB/sindexed 40.76MB in  0s, 173.44MB/sindexed 40.89MB in  0s, 173.52MB/sindexed 41.03MB in  0s, 173.61MB/sindexed 41.16MB in  0s, 173.73MB/sindexed 41.29MB in  0s, 173.83MB/sindexed 41.42MB in  0s, 173.95MB/sindexed 41.55MB in  0s, 174.06MB/sindexed 41.68MB in  0s, 174.18MB/sindexed 41.81MB in  0s, 174.29MB/sindexed 41.94MB in  0s, 174.31MB/sindexed 42.07MB in  0s, 174.33MB/sindexed 42.20MB in  0s, 174.45MB/sindexed 42.34MB in  0s, 174.57MB/sindexed 42.47MB in  0s, 174.65MB/sindexed 42.60MB in  0s, 174.75MB/sindexed 42.73MB in  0s, 174.86MB/sindexed 42.86MB in  0s, 174.90MB/sindexed 42.99MB in  0s, 174.84MB/sindexed 43.12MB in  0s, 174.91MB/sindexed 43.25MB in  0s, 175.00MB/sindexed 43.38MB in  0s, 175.06MB/sindexed 43.52MB in  0s, 175.14MB/sindexed 43.65MB in  0s, 175.22MB/sindexed 43.78MB in  0s, 175.34MB/sindexed 43.91MB in  0s, 175.46MB/sindexed 44.04MB in  0s, 175.43MB/sindexed 44.17MB in  0s, 175.53MB/sindexed 44.30MB in  0s, 175.65MB/sindexed 44.43MB in  0s, 175.77MB/sindexed 44.56MB in  0s, 175.90MB/sindexed 44.70MB in  0s, 176.02MB/sindexed 44.83MB in  0s, 176.11MB/sindexed 44.96MB in  0s, 176.20MB/sindexed 45.09MB in  0s, 176.29MB/sindexed 45.22MB in  0s, 176.33MB/sindexed 45.35MB in  0s, 176.42MB/sindexed 45.48MB in  0s, 176.54MB/sindexed 45.61MB in  0s, 176.66MB/sindexed 45.74MB in  0s, 176.78MB/sindexed 45.87MB in  0s, 159.35MB/sindexed 46.01MB in  0s, 159.44MB/sindexed 46.14MB in  0s, 159.53MB/sindexed 46.27MB in  0s, 159.62MB/sindexed 46.40MB in  0s, 159.68MB/sindexed 46.53MB in  0s, 159.72MB/sindexed 46.66MB in  0s, 159.75MB/sindexed 46.79MB in  0s, 159.86MB/sindexed 46.92MB in  0s, 159.92MB/sindexed 47.05MB in  0s, 160.05MB/sindexed 47.19MB in  0s, 160.15MB/sindexed 47.32MB in  0s, 160.30MB/sindexed 47.45MB in  0s, 160.44MB/sindexed 47.58MB in  0s, 160.54MB/sindexed 47.71MB in  0s, 160.61MB/sindexed 47.84MB in  0s, 160.68MB/sindexed 47.97MB in  0s, 160.83MB/sindexed 48.10MB in  0s, 160.95MB/sindexed 48.23MB in  0s, 161.05MB/sindexed 48.37MB in  0s, 161.13MB/sindexed 48.50MB in  0s, 161.14MB/sindexed 48.63MB in  0s, 161.25MB/sindexed 48.76MB in  0s, 161.35MB/sindexed 48.89MB in  0s, 161.45MB/sindexed 49.02MB in  0s, 161.54MB/sindexed 49.15MB in  0s, 161.63MB/sindexed 49.28MB in  0s, 161.74MB/sindexed 49.41MB in  0s, 161.82MB/sindexed 49.54MB in  0s, 161.91MB/sindexed 49.68MB in  0s, 162.01MB/sindexed 49.81MB in  0s, 162.03MB/sindexed 49.94MB in  0s, 162.06MB/sindexed 50.07MB in  0s, 162.14MB/sindexed 50.20MB in  0s, 162.24MB/sindexed 50.33MB in  0s, 162.34MB/sindexed 50.46MB in  0s, 162.38MB/sindexed 50.59MB in  0s, 162.47MB/sindexed 50.60MB in  0s, 162.17MB/s                                                                              indexed 2.15GB in  0s, 2.15GB/s                                                                              
+
+    ## Table hlth_cd_aro cached at C:\Users\FERENC~1\AppData\Local\Temp\Rtmpwz7B5g/eurostat/85569e61b39c99877731eaacd4cc6c46.rds
+
+``` r
+ESres <- ESres[!geo %in% c("EU27_2020", "EU28", "FX")]
+ESres <- ESres[resid == "TOT_IN"]
+ESres$Year <- lubridate::year(ESres$TIME_PERIOD)
+names(ESres)[names(ESres) == "icd10"] <- "EurostatCode"
+ESres$iso3c <- countrycode::countrycode(ESres$geo, "eurostat", "iso3c")
+ESres <- merge(ESres, data.table(sex = c("T", "F", "M"), Sex = c("Összesen", "Nő", "Férfi")),
+               by = "sex")
+ESres <- merge(ESres, data.table(age = c("TOTAL", "Y_LT1", "Y1-4", "Y5-9", "Y10-14", "Y15-19",
+                                         "Y20-24", "Y25-29", "Y30-34", "Y35-39", "Y40-44",
+                                         "Y45-49", "Y50-54", "Y55-59", "Y60-64", "Y65-69",
+                                         "Y70-74", "Y75-79", "Y80-84", "Y85-89", "Y90-94",
+                                         "Y_GE95", "Y_GE85"),
+                                 Age = c("Összesen", "Deaths2", "Deaths3456",
+                                         paste0("Deaths", 7:25), "Deaths232425")), by = "age")
+```
+
+Mindenekelőtt leellenőrizzük, hogy jól működik-e a többszörös
+kód-lekérdezés (tehát, ha több kódot kérdezünk le egyszerre, akkor az
+eredmény ugyanaz-e, mintha külön-külön kérdeztük volna le):
+
+``` r
+temp2 <- rbindlist(lapply(names(ICDGroups$Groups), function(icd)
+  dataInputFun("Groups",
+               "Single", icd, NA,
+               "Single", "HUN", NA,
+               "death",  NA, NA, "None", "count", "Year",
+               c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", FALSE, FALSE)$rd))
+temp2 <- temp2[order(Year, CauseGroup)]
+setkey(temp2, iso3c)
+
+temp <- dataInputFun("Groups",
+                     "MultiIndiv", NA, names(ICDGroups$Groups),
+                     "Single", "HUN", NA,
+                     "death",  NA, NA, "None", "count", "Year",
+                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", FALSE, FALSE)$rd
+
+identical(temp, temp2)
+```
+
+    ## [1] TRUE
+
+Mivel igen, így a továbbiakban csak a többszörös lekérdezést használjuk.
+
+Nézzük meg az eredményeket, először abban az esetben, ha csak
+Magyarországot nézzük, de az összes betegségcsoport:
+
+``` r
+res <- merge(ESres[age == "TOTAL"& geo == "HU" & sex == "T"], temp,
+             by = c("Year", "EurostatCode"))
+
+plot(values ~ value, data = res)
+abline(0, 1)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-54-1.png)<!-- -->
+
+Szinte tökéletes az egyezés, minden kategóriánál jól egyezik a saját
+számunk az Eurostat-éval! (Teljesen egzakt egyezés valószínűleg nem
+várható az adatok utólag korrekciója miatt.)
+
+Következő lépésben bővítsük a validációt: ne csak Magyarországot
+vizsgáljuk, hanem a többi országot is! Először itt is nézzük meg, hogy
+működik-e a többszörös (ország)lekérdezés:
+
+``` r
+temp2 <- rbindlist(lapply(intersect(unique(ESres$iso3c), unique(RawData$iso3c)),
+                          function(country)
+                            dataInputFun("Groups",
+                                         "MultiIndiv", NA, names(ICDGroups$Groups),
+                                         "Single", country, NA,
+                                         "death",  NA, NA, "None", "count", "Year",
+                                         c("Year", "CauseGroup", "EurostatCode"), NULL,
+                                         "Összesen", "Összesen", FALSE, FALSE)$rd))
+temp2 <- temp2[order(iso3c, Year, CauseGroup)]
+setkey(temp2, iso3c)
+
+temp <- dataInputFun("Groups",
+                     "MultiIndiv", NA, names(ICDGroups$Groups),
+                     "Multiple", NA, intersect(unique(ESres$iso3c), unique(RawData$iso3c)),
+                     "death",  NA, NA, "None", "count", "Year",
+                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", FALSE, TRUE)$rd
+
+identical(temp, temp2)
+```
+
+    ## [1] TRUE
+
+Itt is rendben vagyunk. Nézzük most az eredményeket:
+
+``` r
+res <- merge(ESres[age == "TOTAL" & sex == "T"], temp, by = c("Year", "EurostatCode", "iso3c"))
+
+plot(values ~ value, data = res)
+abline(0, 1)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-56-1.png)<!-- -->
+
+Továbbra is teljesen jó az egyezés!
+
+Végezetül utolsó lépésben tegyünk még egy bővítést: ne csak egyben
+nézzük az életkorokat és a nemeket, hanem vizsgáljuk meg ezen túlmenően
+az összes életkori és nemi kategóriát külön-külön is! Az eredmény:
+
+``` r
+pargrid <- CJ(Age = setdiff(c("Összesen", as.character(unique(RawData$Age))),
+                            paste0("Deaths", 3:6)),
+              Sex = c("Összesen", as.character(unique(RawData$Sex))))
+
+temp <- rbindlist(lapply(1:nrow(pargrid), function(i)
+  cbind(dataInputFun("Groups",
+                     "Multiple", NA, names(ICDGroups$Groups),
+                     "Multiple", NA, intersect(unique(ESres$iso3c), unique(RawData$iso3c)),
+                     "death",  NA, NA, "None", "count", "Year",
+                     c("Year", "CauseGroup", "EurostatCode"), NULL,
+                     pargrid$Sex[i], pargrid$Age[i], FALSE, TRUE)$rd,
+        Age = pargrid$Age[i], Sex = pargrid$Sex[i])))
+
+res <- merge(ESres, temp, by = c("Year", "EurostatCode", "iso3c", "Sex", "Age"))
+
+plot(values ~ value, data = res)
+abline(0, 1)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-57-1.png)<!-- -->
+
+Itt sajnos már van eltérés. Megnézve a nyers adatokat, az derül ki, hogy
+a problémát Németország adja: vannak évek, amikor olyan életkori
+formátum-kódot jelentett, mintha 95 évig le lennének bontva az adatai,
+de valójában csak 85-ig voltak. (Emiatt rossz sorokkal történik az
+Eurostat-táblához kapcsolás.) Szerintem ez egyszerű elgépelés; már
+jeleztem a hibát a WHO-nak.
+
+TODO: további validációk
 
 ## A weboldal
 
