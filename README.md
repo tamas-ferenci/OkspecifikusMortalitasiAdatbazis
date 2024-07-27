@@ -955,8 +955,9 @@ kódot](https://www.iso.org/iso-3166-country-codes.html) fogom a
 későbbiekben használni az egyértelmű azonosításhoz:
 
 ``` r
-CountryCodes <- fread(
-  "https://apps.who.int/gho/athena/data/xmart.csv?target=COUNTRY&profile=xmart")
+# CountryCodes <- fread(
+#   "https://apps.who.int/gho/athena/data/xmart.csv?target=COUNTRY&profile=xmart")
+CountryCodes <- fread("xmart.csv")
 ```
 
 Nézzük meg, hogy ez összekapcsolható-e a korábbi táblával, azaz, minden
@@ -1549,6 +1550,9 @@ ICDGroups <- list(
               EurostatCode = "A_B", Name = "Fertőző és parazitás betegségek (A00-B99)"),
          list(ICD = ICDData[(Kod1=="A"&Kod23>=15&Kod23<=19)|(Kod1=="B"&Kod23==90)]$KOD10,
               EurostatCode = "A15-A19_B90", Name = "Gümőkór (A15-A19, B90)"),
+         list(ICD = ICDData[KOD10 %in% c("B1800", "B1810", "B1820")]$KOD10,
+              EurostatCode = "B180-B182",
+              Name = "Idült vírusos B- és C-típusú hepatitis (B180-B182)"),
          list(ICD = ICDData[Kod1=="B"&Kod23>=20&Kod23<=24]$KOD10,
               EurostatCode = "B20-B24",
               Name = "Humán immunodeficiencia vírus (HIV) betegség (B20-B24)"),
@@ -1717,6 +1721,10 @@ ICDGroups <- list(
               EurostatCode = "K70_K73_K74",
               Name = paste0("Idült májgyulladás, májfibrózis és májzsugorodás, valamint ",
                             "alkoholos májbetegség (K70, K73-K74)")),
+         list(ICD = ICDData[Kod1=="K"&(Kod23>=72&Kod23<=75)]$KOD10,
+              EurostatCode = "K72-K75",
+              Name = paste0("Idült májbetegség, kivéve az alkoholos és toxikus ",
+                            "májbetegséget (K72-K75)")),
          list(ICD = ICDData[Kod1=="K"&((Kod23>=0&Kod23<=22)|(Kod23>=29&Kod23<=66)|
                                          (Kod23>=71&Kod23<=72)|(Kod23>=75&Kod23<=92))]$KOD10,
               EurostatCode = "K_OTH",
@@ -1766,6 +1774,14 @@ ICDGroups <- list(
               EurostatCode = "R_OTH",
               Name = paste0("Egyéb máshova nem osztályozott panaszok, tünetek és kóros klinikai ",
                             "és laboratóriumi leletek (R00-R94)")),
+         list(ICD = ICDData[Kod1=="U"]$KOD10, EurostatCode = "U",
+              Name = "Speciális kódok, beleértve a COVID-19-et (U)"),
+         list(ICD = ICDData[KOD10 == "U0710"]$KOD10, EurostatCode = "U071",
+              Name = "COVID-19, kimutatott vírussal (U071)"),
+         list(ICD = ICDData[KOD10 == "U0720"]$KOD10, EurostatCode = "U072",
+              Name = "COVID-19, vírus kimutatása nélkül (U072)"),
+         list(ICD = ICDData[KOD10 %in% c("U0990", "U1090")]$KOD10,
+              EurostatCode = "U_COV19_OTH", Name = "COVID-19, egyéb (U099, U109)"),
          list(ICD = ICDData[(Kod1=="V")|(Kod1=="W")|(Kod1=="X")|(Kod1=="Y"&Kod23>=0&Kod23<=89)]$KOD10,
               EurostatCode = "V01-Y89", Name = "A morbiditás és mortalitás külső okai (V00-Y89)"),
          list(ICD = ICDData[(Kod1=="V")|(Kod1=="W")|(Kod1=="X"&Kod23>=0&Kod23<=59)|
@@ -1845,7 +1861,7 @@ ICDGroups <- list(
                       KOD10%in%c("C9100", "C9101", "C9102", "C9110")))|
         (Kod1=="G"&(KOD10%in%c("G0020", "G0030", "G0080", "G0090")|Kod23%in%c(3, 40, 41)))|
         (Kod1=="I"&((Kod23%in%c(71, 15, 70, 26, 80))|(Kod23>=10&Kod23<=13)|(Kod23>=20&Kod23<=25)|
-           (Kod23>=60&Kod23<=69)|(Kod23>=0&Kod23<=9)|KOD10%in%c("I7390", "I8290")))|
+                      (Kod23>=60&Kod23<=69)|(Kod23>=0&Kod23<=9)|KOD10%in%c("I7390", "I8290")))|
         (Kod1=="J"&(Kod23%in%c(65, 12, 15, 80, 81, 85, 86, 90, 93, 94)|(Kod23>=0&Kod23<=6)|
                       (Kod23>=30&Kod23<=39)|(Kod23>=16&Kod23<=18)|(Kod23>=20&Kod23<=22)|
                       (Kod23>=45&Kod23<=47)))|
@@ -2125,11 +2141,11 @@ A másik az Eurostat, `demo_pjan` tábla:
     ##      4:    AUS  1955      1     Nő  97647.12    NA
     ##      5:    AUS  1955     10  Férfi  82364.38    NA
     ##     ---                                           
-    ## 248207:    X12  2022     97     Nő   1126.16    NA
-    ## 248208:    X12  2022     98  Férfi    242.73    NA
-    ## 248209:    X12  2022     98     Nő    795.43    NA
-    ## 248210:    X12  2022     99  Férfi    147.05    NA
-    ## 248211:    X12  2022     99     Nő    538.35    NA
+    ## 248177:    X12  2022     97     Nő   1126.16    NA
+    ## 248178:    X12  2022     98  Férfi    242.73    NA
+    ## 248179:    X12  2022     98     Nő    795.43    NA
+    ## 248180:    X12  2022     99  Férfi    147.05    NA
+    ## 248181:    X12  2022     99     Nő    538.35    NA
 
     ## Key: <iso3c, Year>
     ##     iso3c  Year   freq   unit    age    sex    geo TIME_PERIOD values    HMD
@@ -2230,7 +2246,7 @@ dataInputFun <- function(category, multipleICD, ICDSingle, ICDMultiple,
                                                       Weights, EurostatCode))))
   
   if(!is.na(multipleCountry)) {
-    country <- if((multipleICD == "MultiIndiv" && !comp && !valid) || (multipleCountry == "Single"))
+    country <- if((multipleICD == "MultiIndiv" && is.null(comp) && !valid) || (multipleCountry == "Single"))
       countrySingle else countryMultiple
     if(is.null(country)) return(NULL)
     
@@ -2276,7 +2292,7 @@ dataInputFun <- function(category, multipleICD, ICDSingle, ICDMultiple,
   if(multipleICD != "MultiIndiv" && !is.na(strat) && multipleCountry == "Single")
     byvars <- c(byvars, strat[strat != "None"])
   
-  if(comp) rd$iso3c <- ifelse(rd$iso3c == "HUN", "HUN", "Comparator")
+  if(!is.null(comp)) rd$iso3c <- ifelse(rd$iso3c == comp, "Investigated", "Comparator")
   rd <- rd[, .(value = sum(value), Pop = sum(Pop)), setdiff(names(rd), c("value", "Pop"))]
   
   rd <- switch(metric,
@@ -2292,8 +2308,8 @@ dataInputFun <- function(category, multipleICD, ICDSingle, ICDMultiple,
   
   if(!is.na(ordVar)) rd <- rd[order(rd[[ordVar]])]
   
-  if(!comp) rd <- merge(rd, data.table(iso3c = CountryCodes,
-                                       CountryName = names(CountryCodes)))
+  if(is.null(comp)) rd <- merge(rd, data.table(iso3c = CountryCodes,
+                                               CountryName = names(CountryCodes)))
   
   return(list(rd = rd, icd = icd, country = country))
 }
@@ -2307,9 +2323,9 @@ oszlopokat, hogy a saját adatformátumunkkal összekapcsolható legyen:
 ESres <- as.data.table(eurostat::get_eurostat("hlth_cd_aro"))
 ```
 
-    ## indexed 0B in  0s, 0B/sindexed 34.21MB in  0s, 170.57MB/sindexed 34.34MB in  0s, 170.62MB/sindexed 34.47MB in  0s, 170.71MB/sindexed 34.60MB in  0s, 170.79MB/sindexed 34.73MB in  0s, 170.88MB/sindexed 34.86MB in  0s, 170.99MB/sindexed 35.00MB in  0s, 171.08MB/sindexed 35.13MB in  0s, 171.16MB/sindexed 35.26MB in  0s, 171.29MB/sindexed 35.39MB in  0s, 171.37MB/sindexed 35.52MB in  0s, 171.45MB/sindexed 35.65MB in  0s, 171.56MB/sindexed 35.78MB in  0s, 171.68MB/sindexed 35.91MB in  0s, 171.79MB/sindexed 36.04MB in  0s, 171.89MB/sindexed 36.18MB in  0s, 171.97MB/sindexed 36.31MB in  0s, 171.94MB/sindexed 36.44MB in  0s, 172.04MB/sindexed 36.57MB in  0s, 172.10MB/sindexed 36.70MB in  0s, 172.16MB/sindexed 36.83MB in  0s, 172.00MB/sindexed 36.96MB in  0s, 171.72MB/sindexed 37.09MB in  0s, 171.81MB/sindexed 37.22MB in  0s, 171.91MB/sindexed 37.36MB in  0s, 172.01MB/sindexed 37.49MB in  0s, 172.11MB/sindexed 37.62MB in  0s, 172.24MB/sindexed 37.75MB in  0s, 172.33MB/sindexed 37.88MB in  0s, 172.43MB/sindexed 38.01MB in  0s, 172.49MB/sindexed 38.14MB in  0s, 172.55MB/sindexed 38.27MB in  0s, 172.65MB/sindexed 38.40MB in  0s, 172.75MB/sindexed 38.53MB in  0s, 172.84MB/sindexed 38.67MB in  0s, 172.96MB/sindexed 38.80MB in  0s, 173.05MB/sindexed 38.93MB in  0s, 173.15MB/sindexed 39.06MB in  0s, 173.27MB/sindexed 39.19MB in  0s, 173.31MB/sindexed 39.32MB in  0s, 173.11MB/sindexed 39.45MB in  0s, 173.10MB/sindexed 39.58MB in  0s, 173.20MB/sindexed 39.71MB in  0s, 173.30MB/sindexed 39.85MB in  0s, 173.40MB/sindexed 39.98MB in  0s, 172.98MB/sindexed 40.11MB in  0s, 173.01MB/sindexed 40.24MB in  0s, 173.08MB/sindexed 40.37MB in  0s, 173.17MB/sindexed 40.50MB in  0s, 173.26MB/sindexed 40.63MB in  0s, 173.35MB/sindexed 40.76MB in  0s, 173.44MB/sindexed 40.89MB in  0s, 173.52MB/sindexed 41.03MB in  0s, 173.61MB/sindexed 41.16MB in  0s, 173.73MB/sindexed 41.29MB in  0s, 173.83MB/sindexed 41.42MB in  0s, 173.95MB/sindexed 41.55MB in  0s, 174.06MB/sindexed 41.68MB in  0s, 174.18MB/sindexed 41.81MB in  0s, 174.29MB/sindexed 41.94MB in  0s, 174.31MB/sindexed 42.07MB in  0s, 174.33MB/sindexed 42.20MB in  0s, 174.45MB/sindexed 42.34MB in  0s, 174.57MB/sindexed 42.47MB in  0s, 174.65MB/sindexed 42.60MB in  0s, 174.75MB/sindexed 42.73MB in  0s, 174.86MB/sindexed 42.86MB in  0s, 174.90MB/sindexed 42.99MB in  0s, 174.84MB/sindexed 43.12MB in  0s, 174.91MB/sindexed 43.25MB in  0s, 175.00MB/sindexed 43.38MB in  0s, 175.06MB/sindexed 43.52MB in  0s, 175.14MB/sindexed 43.65MB in  0s, 175.22MB/sindexed 43.78MB in  0s, 175.34MB/sindexed 43.91MB in  0s, 175.46MB/sindexed 44.04MB in  0s, 175.43MB/sindexed 44.17MB in  0s, 175.53MB/sindexed 44.30MB in  0s, 175.65MB/sindexed 44.43MB in  0s, 175.77MB/sindexed 44.56MB in  0s, 175.90MB/sindexed 44.70MB in  0s, 176.02MB/sindexed 44.83MB in  0s, 176.11MB/sindexed 44.96MB in  0s, 176.20MB/sindexed 45.09MB in  0s, 176.29MB/sindexed 45.22MB in  0s, 176.33MB/sindexed 45.35MB in  0s, 176.42MB/sindexed 45.48MB in  0s, 176.54MB/sindexed 45.61MB in  0s, 176.66MB/sindexed 45.74MB in  0s, 176.78MB/sindexed 45.87MB in  0s, 159.35MB/sindexed 46.01MB in  0s, 159.44MB/sindexed 46.14MB in  0s, 159.53MB/sindexed 46.27MB in  0s, 159.62MB/sindexed 46.40MB in  0s, 159.68MB/sindexed 46.53MB in  0s, 159.72MB/sindexed 46.66MB in  0s, 159.75MB/sindexed 46.79MB in  0s, 159.86MB/sindexed 46.92MB in  0s, 159.92MB/sindexed 47.05MB in  0s, 160.05MB/sindexed 47.19MB in  0s, 160.15MB/sindexed 47.32MB in  0s, 160.30MB/sindexed 47.45MB in  0s, 160.44MB/sindexed 47.58MB in  0s, 160.54MB/sindexed 47.71MB in  0s, 160.61MB/sindexed 47.84MB in  0s, 160.68MB/sindexed 47.97MB in  0s, 160.83MB/sindexed 48.10MB in  0s, 160.95MB/sindexed 48.23MB in  0s, 161.05MB/sindexed 48.37MB in  0s, 161.13MB/sindexed 48.50MB in  0s, 161.14MB/sindexed 48.63MB in  0s, 161.25MB/sindexed 48.76MB in  0s, 161.35MB/sindexed 48.89MB in  0s, 161.45MB/sindexed 49.02MB in  0s, 161.54MB/sindexed 49.15MB in  0s, 161.63MB/sindexed 49.28MB in  0s, 161.74MB/sindexed 49.41MB in  0s, 161.82MB/sindexed 49.54MB in  0s, 161.91MB/sindexed 49.68MB in  0s, 162.01MB/sindexed 49.81MB in  0s, 162.03MB/sindexed 49.94MB in  0s, 162.06MB/sindexed 50.07MB in  0s, 162.14MB/sindexed 50.20MB in  0s, 162.24MB/sindexed 50.33MB in  0s, 162.34MB/sindexed 50.46MB in  0s, 162.38MB/sindexed 50.59MB in  0s, 162.47MB/sindexed 50.60MB in  0s, 162.17MB/s                                                                              indexed 2.15GB in  0s, 2.15GB/s                                                                              
+    ## indexed 0B in  0s, 0B/sindexed 30.80MB in  0s, 153.51MB/sindexed 30.93MB in  0s, 153.45MB/sindexed 31.06MB in  0s, 153.43MB/sindexed 31.19MB in  0s, 153.55MB/sindexed 31.33MB in  0s, 153.57MB/sindexed 31.46MB in  0s, 153.74MB/sindexed 31.59MB in  0s, 153.89MB/sindexed 31.72MB in  0s, 154.05MB/sindexed 31.85MB in  0s, 154.10MB/sindexed 31.98MB in  0s, 154.06MB/sindexed 32.11MB in  0s, 154.04MB/sindexed 32.24MB in  0s, 154.15MB/sindexed 32.37MB in  0s, 154.29MB/sindexed 32.51MB in  0s, 154.43MB/sindexed 32.64MB in  0s, 154.58MB/sindexed 32.77MB in  0s, 154.70MB/sindexed 32.90MB in  0s, 154.85MB/sindexed 33.03MB in  0s, 155.00MB/sindexed 33.16MB in  0s, 155.18MB/sindexed 33.29MB in  0s, 155.36MB/sindexed 33.42MB in  0s, 155.54MB/sindexed 33.55MB in  0s, 155.71MB/sindexed 33.69MB in  0s, 155.89MB/sindexed 33.82MB in  0s, 156.10MB/sindexed 33.95MB in  0s, 156.32MB/sindexed 34.08MB in  0s, 156.46MB/sindexed 34.21MB in  0s, 156.60MB/sindexed 34.34MB in  0s, 156.75MB/sindexed 34.47MB in  0s, 156.89MB/sindexed 34.60MB in  0s, 157.02MB/sindexed 34.73MB in  0s, 157.16MB/sindexed 34.86MB in  0s, 157.30MB/sindexed 35.00MB in  0s, 157.44MB/sindexed 35.13MB in  0s, 157.58MB/sindexed 35.26MB in  0s, 157.58MB/sindexed 35.39MB in  0s, 157.64MB/sindexed 35.52MB in  0s, 157.65MB/sindexed 35.65MB in  0s, 157.73MB/sindexed 35.78MB in  0s, 157.82MB/sindexed 35.91MB in  0s, 157.91MB/sindexed 36.04MB in  0s, 158.00MB/sindexed 36.18MB in  0s, 158.11MB/sindexed 36.31MB in  0s, 158.20MB/sindexed 36.44MB in  0s, 158.31MB/sindexed 36.57MB in  0s, 158.39MB/sindexed 36.70MB in  0s, 158.51MB/sindexed 36.83MB in  0s, 158.60MB/sindexed 36.96MB in  0s, 158.68MB/sindexed 37.09MB in  0s, 158.77MB/sindexed 37.22MB in  0s, 158.71MB/sindexed 37.36MB in  0s, 158.66MB/sindexed 37.49MB in  0s, 158.73MB/sindexed 37.62MB in  0s, 158.74MB/sindexed 37.75MB in  0s, 158.71MB/sindexed 37.88MB in  0s, 158.83MB/sindexed 38.01MB in  0s, 158.95MB/sindexed 38.14MB in  0s, 158.88MB/sindexed 38.27MB in  0s, 158.95MB/sindexed 38.40MB in  0s, 159.01MB/sindexed 38.53MB in  0s, 159.05MB/sindexed 38.67MB in  0s, 159.19MB/sindexed 38.80MB in  0s, 159.31MB/sindexed 38.93MB in  0s, 159.44MB/sindexed 39.06MB in  0s, 159.57MB/sindexed 39.19MB in  0s, 159.69MB/sindexed 39.32MB in  0s, 159.81MB/sindexed 39.45MB in  0s, 159.95MB/sindexed 39.58MB in  0s, 160.08MB/sindexed 39.71MB in  0s, 160.22MB/sindexed 39.85MB in  0s, 160.36MB/sindexed 39.98MB in  0s, 160.49MB/sindexed 40.11MB in  0s, 160.62MB/sindexed 40.24MB in  0s, 160.74MB/sindexed 40.37MB in  0s, 160.81MB/sindexed 40.50MB in  0s, 160.89MB/sindexed 40.63MB in  0s, 160.95MB/sindexed 40.76MB in  0s, 160.97MB/sindexed 40.89MB in  0s, 161.02MB/sindexed 41.03MB in  0s, 160.92MB/sindexed 41.16MB in  0s, 160.79MB/sindexed 41.29MB in  0s, 160.84MB/sindexed 41.42MB in  0s, 160.75MB/sindexed 41.55MB in  0s, 160.77MB/sindexed 41.68MB in  0s, 160.83MB/sindexed 41.81MB in  0s, 160.86MB/sindexed 41.94MB in  0s, 160.82MB/sindexed 42.07MB in  0s, 160.84MB/sindexed 42.20MB in  0s, 160.90MB/sindexed 42.34MB in  0s, 160.90MB/sindexed 42.47MB in  0s, 160.94MB/sindexed 42.60MB in  0s, 160.96MB/sindexed 42.73MB in  0s, 160.98MB/sindexed 42.86MB in  0s, 161.03MB/sindexed 42.99MB in  0s, 161.12MB/sindexed 43.12MB in  0s, 161.02MB/sindexed 43.25MB in  0s, 160.96MB/sindexed 43.38MB in  0s, 160.86MB/sindexed 43.52MB in  0s, 160.81MB/sindexed 43.65MB in  0s, 160.84MB/sindexed 43.78MB in  0s, 160.96MB/sindexed 43.91MB in  0s, 161.07MB/sindexed 44.04MB in  0s, 161.18MB/sindexed 44.17MB in  0s, 161.27MB/sindexed 44.30MB in  0s, 161.37MB/sindexed 44.43MB in  0s, 161.46MB/sindexed 44.56MB in  0s, 161.57MB/sindexed 44.70MB in  0s, 161.67MB/sindexed 44.83MB in  0s, 161.75MB/sindexed 44.96MB in  0s, 161.80MB/sindexed 45.09MB in  0s, 161.88MB/sindexed 45.22MB in  0s, 161.95MB/sindexed 45.35MB in  0s, 162.05MB/sindexed 45.48MB in  0s, 162.17MB/sindexed 45.61MB in  0s, 162.30MB/sindexed 45.74MB in  0s, 162.43MB/sindexed 45.87MB in  0s, 147.14MB/sindexed 46.01MB in  0s, 147.17MB/sindexed 46.14MB in  0s, 147.30MB/sindexed 46.27MB in  0s, 147.44MB/sindexed 46.40MB in  0s, 147.53MB/sindexed 46.53MB in  0s, 147.60MB/sindexed 46.66MB in  0s, 147.54MB/sindexed 46.79MB in  0s, 147.61MB/sindexed 46.92MB in  0s, 147.62MB/sindexed 47.05MB in  0s, 147.75MB/sindexed 47.19MB in  0s, 147.87MB/sindexed 47.32MB in  0s, 148.01MB/sindexed 47.45MB in  0s, 148.11MB/sindexed 47.58MB in  0s, 148.23MB/sindexed 47.71MB in  0s, 148.37MB/sindexed 47.84MB in  0s, 148.49MB/sindexed 47.97MB in  0s, 148.61MB/sindexed 48.10MB in  0s, 148.69MB/sindexed 48.23MB in  0s, 148.73MB/sindexed 48.37MB in  0s, 148.77MB/sindexed 48.50MB in  0s, 148.87MB/sindexed 48.63MB in  0s, 148.98MB/sindexed 48.76MB in  0s, 149.08MB/sindexed 48.89MB in  0s, 149.15MB/sindexed 49.02MB in  0s, 149.24MB/sindexed 49.15MB in  0s, 149.31MB/sindexed 49.28MB in  0s, 149.40MB/sindexed 49.41MB in  0s, 149.47MB/sindexed 49.54MB in  0s, 149.42MB/sindexed 49.68MB in  0s, 149.39MB/sindexed 49.81MB in  0s, 149.45MB/sindexed 49.94MB in  0s, 149.51MB/sindexed 50.07MB in  0s, 149.57MB/sindexed 50.20MB in  0s, 149.67MB/sindexed 50.33MB in  0s, 149.74MB/sindexed 50.46MB in  0s, 149.82MB/sindexed 50.59MB in  0s, 149.92MB/sindexed 50.60MB in  0s, 149.63MB/s                                                                              indexed 2.15GB in  0s, 2.15GB/s                                                                              
 
-    ## Table hlth_cd_aro cached at C:\Users\FERENC~1\AppData\Local\Temp\Rtmpwz7B5g/eurostat/85569e61b39c99877731eaacd4cc6c46.rds
+    ## Table hlth_cd_aro cached at C:\Users\FERENC~1\AppData\Local\Temp\RtmpMVBNXM/eurostat/43d01f4a46ebe516c39884dcf6380cf1.rds
 
 ``` r
 ESres <- ESres[!geo %in% c("EU27_2020", "EU28", "FX")]
@@ -2338,7 +2354,7 @@ temp2 <- rbindlist(lapply(names(ICDGroups$Groups), function(icd)
                "Single", icd, NA,
                "Single", "HUN", NA,
                "death",  NA, NA, "None", "count", "Year",
-               c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", FALSE, FALSE)$rd))
+               c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", NULL, FALSE)$rd))
 temp2 <- temp2[order(Year, CauseGroup)]
 setkey(temp2, iso3c)
 
@@ -2346,7 +2362,7 @@ temp <- dataInputFun("Groups",
                      "MultiIndiv", NA, names(ICDGroups$Groups),
                      "Single", "HUN", NA,
                      "death",  NA, NA, "None", "count", "Year",
-                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", FALSE, FALSE)$rd
+                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", NULL, FALSE)$rd
 
 identical(temp, temp2)
 ```
@@ -2384,7 +2400,7 @@ temp2 <- rbindlist(lapply(intersect(unique(ESres$iso3c), unique(RawData$iso3c)),
                                          "Single", country, NA,
                                          "death",  NA, NA, "None", "count", "Year",
                                          c("Year", "CauseGroup", "EurostatCode"), NULL,
-                                         "Összesen", "Összesen", FALSE, FALSE)$rd))
+                                         "Összesen", "Összesen", NULL, FALSE)$rd))
 temp2 <- temp2[order(iso3c, Year, CauseGroup)]
 setkey(temp2, iso3c)
 
@@ -2392,12 +2408,12 @@ temp <- dataInputFun("Groups",
                      "MultiIndiv", NA, names(ICDGroups$Groups),
                      "Multiple", NA, intersect(unique(ESres$iso3c), unique(RawData$iso3c)),
                      "death",  NA, NA, "None", "count", "Year",
-                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", FALSE, TRUE)$rd
+                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", NULL, TRUE)$rd
 
 identical(temp, temp2)
 ```
 
-    ## [1] TRUE
+    ## [1] FALSE
 
 Itt is rendben vagyunk. Nézzük most az eredményeket:
 
@@ -2427,7 +2443,7 @@ temp <- rbindlist(lapply(1:nrow(pargrid), function(i)
                      "Multiple", NA, intersect(unique(ESres$iso3c), unique(RawData$iso3c)),
                      "death",  NA, NA, "None", "count", "Year",
                      c("Year", "CauseGroup", "EurostatCode"), NULL,
-                     pargrid$Sex[i], pargrid$Age[i], FALSE, TRUE)$rd,
+                     pargrid$Sex[i], pargrid$Age[i], NULL, TRUE)$rd,
         Age = pargrid$Age[i], Sex = pargrid$Sex[i])))
 
 res <- merge(ESres, temp, by = c("Year", "EurostatCode", "iso3c", "Sex", "Age"))

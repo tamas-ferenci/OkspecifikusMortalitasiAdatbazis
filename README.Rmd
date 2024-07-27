@@ -342,8 +342,9 @@ RawData <- rbindlist(lapply(list.files(td, pattern = "Morticd10*", full.names = 
 Problémát jelenthetnek az ország-kódok, amelyek egy elég szokatlan, szerintem egyedül a WHO által használt kódrendszerrel vannak kódolva (pl. Magyarország kódja 4150). Szerencsére a WHO honlapjáról letölthető egy olyan [táblázat](https://apps.who.int/gho/data/node.metadata.COUNTRY?lang=en), melyben a szokásosabb kódok is megtalálhatóak e mellett, így ez lecserélhető valamilyen bevettebb kódra; én most a [háromjegyű ISO kódot](https://www.iso.org/iso-3166-country-codes.html) fogom a későbbiekben használni az egyértelmű azonosításhoz:
 
 ```{r}
-CountryCodes <- fread(
-  "https://apps.who.int/gho/athena/data/xmart.csv?target=COUNTRY&profile=xmart")
+# CountryCodes <- fread(
+#   "https://apps.who.int/gho/athena/data/xmart.csv?target=COUNTRY&profile=xmart")
+CountryCodes <- fread("xmart.csv")
 ```
 
 Nézzük meg, hogy ez összekapcsolható-e a korábbi táblával, azaz, minden ország(kód) megvan-e:
@@ -648,6 +649,9 @@ ICDGroups <- list(
               EurostatCode = "A_B", Name = "Fertőző és parazitás betegségek (A00-B99)"),
          list(ICD = ICDData[(Kod1=="A"&Kod23>=15&Kod23<=19)|(Kod1=="B"&Kod23==90)]$KOD10,
               EurostatCode = "A15-A19_B90", Name = "Gümőkór (A15-A19, B90)"),
+         list(ICD = ICDData[KOD10 %in% c("B1800", "B1810", "B1820")]$KOD10,
+              EurostatCode = "B180-B182",
+              Name = "Idült vírusos B- és C-típusú hepatitis (B180-B182)"),
          list(ICD = ICDData[Kod1=="B"&Kod23>=20&Kod23<=24]$KOD10,
               EurostatCode = "B20-B24",
               Name = "Humán immunodeficiencia vírus (HIV) betegség (B20-B24)"),
@@ -816,6 +820,10 @@ ICDGroups <- list(
               EurostatCode = "K70_K73_K74",
               Name = paste0("Idült májgyulladás, májfibrózis és májzsugorodás, valamint ",
                             "alkoholos májbetegség (K70, K73-K74)")),
+         list(ICD = ICDData[Kod1=="K"&(Kod23>=72&Kod23<=75)]$KOD10,
+              EurostatCode = "K72-K75",
+              Name = paste0("Idült májbetegség, kivéve az alkoholos és toxikus ",
+                            "májbetegséget (K72-K75)")),
          list(ICD = ICDData[Kod1=="K"&((Kod23>=0&Kod23<=22)|(Kod23>=29&Kod23<=66)|
                                          (Kod23>=71&Kod23<=72)|(Kod23>=75&Kod23<=92))]$KOD10,
               EurostatCode = "K_OTH",
@@ -865,6 +873,14 @@ ICDGroups <- list(
               EurostatCode = "R_OTH",
               Name = paste0("Egyéb máshova nem osztályozott panaszok, tünetek és kóros klinikai ",
                             "és laboratóriumi leletek (R00-R94)")),
+         list(ICD = ICDData[Kod1=="U"]$KOD10, EurostatCode = "U",
+              Name = "Speciális kódok, beleértve a COVID-19-et (U)"),
+         list(ICD = ICDData[KOD10 == "U0710"]$KOD10, EurostatCode = "U071",
+              Name = "COVID-19, kimutatott vírussal (U071)"),
+         list(ICD = ICDData[KOD10 == "U0720"]$KOD10, EurostatCode = "U072",
+              Name = "COVID-19, vírus kimutatása nélkül (U072)"),
+         list(ICD = ICDData[KOD10 %in% c("U0990", "U1090")]$KOD10,
+              EurostatCode = "U_COV19_OTH", Name = "COVID-19, egyéb (U099, U109)"),
          list(ICD = ICDData[(Kod1=="V")|(Kod1=="W")|(Kod1=="X")|(Kod1=="Y"&Kod23>=0&Kod23<=89)]$KOD10,
               EurostatCode = "V01-Y89", Name = "A morbiditás és mortalitás külső okai (V00-Y89)"),
          list(ICD = ICDData[(Kod1=="V")|(Kod1=="W")|(Kod1=="X"&Kod23>=0&Kod23<=59)|
@@ -944,7 +960,7 @@ ICDGroups <- list(
                       KOD10%in%c("C9100", "C9101", "C9102", "C9110")))|
         (Kod1=="G"&(KOD10%in%c("G0020", "G0030", "G0080", "G0090")|Kod23%in%c(3, 40, 41)))|
         (Kod1=="I"&((Kod23%in%c(71, 15, 70, 26, 80))|(Kod23>=10&Kod23<=13)|(Kod23>=20&Kod23<=25)|
-           (Kod23>=60&Kod23<=69)|(Kod23>=0&Kod23<=9)|KOD10%in%c("I7390", "I8290")))|
+                      (Kod23>=60&Kod23<=69)|(Kod23>=0&Kod23<=9)|KOD10%in%c("I7390", "I8290")))|
         (Kod1=="J"&(Kod23%in%c(65, 12, 15, 80, 81, 85, 86, 90, 93, 94)|(Kod23>=0&Kod23<=6)|
                       (Kod23>=30&Kod23<=39)|(Kod23>=16&Kod23<=18)|(Kod23>=20&Kod23<=22)|
                       (Kod23>=45&Kod23<=47)))|
@@ -1164,7 +1180,7 @@ dataInputFun <- function(category, multipleICD, ICDSingle, ICDMultiple,
                                                       Weights, EurostatCode))))
   
   if(!is.na(multipleCountry)) {
-    country <- if((multipleICD == "MultiIndiv" && !comp && !valid) || (multipleCountry == "Single"))
+    country <- if((multipleICD == "MultiIndiv" && is.null(comp) && !valid) || (multipleCountry == "Single"))
       countrySingle else countryMultiple
     if(is.null(country)) return(NULL)
     
@@ -1210,7 +1226,7 @@ dataInputFun <- function(category, multipleICD, ICDSingle, ICDMultiple,
   if(multipleICD != "MultiIndiv" && !is.na(strat) && multipleCountry == "Single")
     byvars <- c(byvars, strat[strat != "None"])
   
-  if(comp) rd$iso3c <- ifelse(rd$iso3c == "HUN", "HUN", "Comparator")
+  if(!is.null(comp)) rd$iso3c <- ifelse(rd$iso3c == comp, "Investigated", "Comparator")
   rd <- rd[, .(value = sum(value), Pop = sum(Pop)), setdiff(names(rd), c("value", "Pop"))]
   
   rd <- switch(metric,
@@ -1226,8 +1242,8 @@ dataInputFun <- function(category, multipleICD, ICDSingle, ICDMultiple,
   
   if(!is.na(ordVar)) rd <- rd[order(rd[[ordVar]])]
   
-  if(!comp) rd <- merge(rd, data.table(iso3c = CountryCodes,
-                                       CountryName = names(CountryCodes)))
+  if(is.null(comp)) rd <- merge(rd, data.table(iso3c = CountryCodes,
+                                               CountryName = names(CountryCodes)))
   
   return(list(rd = rd, icd = icd, country = country))
 }
@@ -1261,7 +1277,7 @@ temp2 <- rbindlist(lapply(names(ICDGroups$Groups), function(icd)
                "Single", icd, NA,
                "Single", "HUN", NA,
                "death",  NA, NA, "None", "count", "Year",
-               c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", FALSE, FALSE)$rd))
+               c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", NULL, FALSE)$rd))
 temp2 <- temp2[order(Year, CauseGroup)]
 setkey(temp2, iso3c)
 
@@ -1269,7 +1285,7 @@ temp <- dataInputFun("Groups",
                      "MultiIndiv", NA, names(ICDGroups$Groups),
                      "Single", "HUN", NA,
                      "death",  NA, NA, "None", "count", "Year",
-                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", FALSE, FALSE)$rd
+                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", NULL, FALSE)$rd
 
 identical(temp, temp2)
 ```
@@ -1298,7 +1314,7 @@ temp2 <- rbindlist(lapply(intersect(unique(ESres$iso3c), unique(RawData$iso3c)),
                                          "Single", country, NA,
                                          "death",  NA, NA, "None", "count", "Year",
                                          c("Year", "CauseGroup", "EurostatCode"), NULL,
-                                         "Összesen", "Összesen", FALSE, FALSE)$rd))
+                                         "Összesen", "Összesen", NULL, FALSE)$rd))
 temp2 <- temp2[order(iso3c, Year, CauseGroup)]
 setkey(temp2, iso3c)
 
@@ -1306,7 +1322,7 @@ temp <- dataInputFun("Groups",
                      "MultiIndiv", NA, names(ICDGroups$Groups),
                      "Multiple", NA, intersect(unique(ESres$iso3c), unique(RawData$iso3c)),
                      "death",  NA, NA, "None", "count", "Year",
-                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", FALSE, TRUE)$rd
+                     c("Year", "CauseGroup", "EurostatCode"), NULL, "Összesen", "Összesen", NULL, TRUE)$rd
 
 identical(temp, temp2)
 ```
@@ -1335,7 +1351,7 @@ temp <- rbindlist(lapply(1:nrow(pargrid), function(i)
                      "Multiple", NA, intersect(unique(ESres$iso3c), unique(RawData$iso3c)),
                      "death",  NA, NA, "None", "count", "Year",
                      c("Year", "CauseGroup", "EurostatCode"), NULL,
-                     pargrid$Sex[i], pargrid$Age[i], FALSE, TRUE)$rd,
+                     pargrid$Sex[i], pargrid$Age[i], NULL, TRUE)$rd,
         Age = pargrid$Age[i], Sex = pargrid$Sex[i])))
 
 res <- merge(ESres, temp, by = c("Year", "EurostatCode", "iso3c", "Sex", "Age"))

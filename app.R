@@ -57,6 +57,7 @@ StdPop <- fread("ESP2013.csv", dec = ",")
 StdPop$Frmat <- as.factor(StdPop$Frmat)
 
 CountryCodes <- readRDS("CountryCodes.rds")
+CountryCodes <- CountryCodes[order(names(CountryCodes))]
 
 EUCountries <- list(
   "EU27" = countrycode::countrycode(eurostat::eu_countries$code, "eurostat", "iso3c"),
@@ -270,7 +271,7 @@ ui <- navbarPage(
   footer = list(
     hr(),
     p("Írta: ", a("Ferenci Tamás", href = "http://www.medstat.hu/", target = "_blank",
-                  .noWS = "outside"), ", v0.33"),
+                  .noWS = "outside"), ", v0.36"),
     
     tags$script(HTML("
       var sc_project=11601191; 
@@ -339,18 +340,17 @@ ui <- navbarPage(
                title = "Magyarország és a világ",
                sidebarLayout(
                  sidebarPanel(
-                   shinyWidgets::pickerInput("hunworldCountryMultiple",
+                   shinyWidgets::pickerInput("hunworldCountryInvestigated", "Vizsgált ország",
+                                             CountryCodes, "HUN", FALSE, options = pickeropts),
+                   shinyWidgets::pickerInput("hunworldCountryComparison",
                                              div("Összehasonlítási alapot képező országok",
                                                  bslib::tooltip(
                                                    bsicons::bs_icon("question-circle"),
-                                                   paste0("Bár a gombok feliratai az ",
-                                                          "egyszerűség kedvéért tartalmazzák, ",
-                                                          "az összehasonlító országokban ",
-                                                          "természetesen nincs benne ",
-                                                          "Magyarország."),
+                                                   paste0("Az összehasonlító országokból ",
+                                                          "természetesen mindig kivételre ",
+                                                          "kerül a vizsgált ország."),
                                                    placement = "right")),
-                                             CountryCodes[CountryCodes != "HUN"],
-                                             setdiff(EUCountries$EU27, "HUN"), TRUE,
+                                             CountryCodes, EUCountries$EU27, TRUE,
                                              options = pickeropts),
                    actionButton("hunworldEU27", "EU27 (Európai Unió) beállítása"),
                    actionButton("hunworldEU15", "EU15 ('Nyugat') beállítása"),
@@ -367,7 +367,7 @@ ui <- navbarPage(
                    conditionalPanel("input.hunworldIndicator == 'yll' & input.hunworldYllMethod == 'pyll'",
                                     numericInput("hunworldYllPyllTarget", "Cél-életkor", 75, 0, 100, 1)),
                    checkboxInput("hunworldPropsize",
-                                 "A körök nagysága a magyar értékkel arányos", FALSE),
+                                 "A körök nagysága a vizsgált ország értékével arányos", FALSE),
                    checkboxInput("hunworldLog", "Logaritmikus ábra", FALSE),
                    checkboxInput("hunworldXRangeSet",
                                  "Vízszintes tengely tartományának beállítása", FALSE),
@@ -390,37 +390,37 @@ ui <- navbarPage(
                  )
                )
              ),
+             
              tabPanel(
                title = "Egészségkonvergencia",
                sidebarLayout(
                  sidebarPanel(
-                   shinyWidgets::pickerInput("hconvCountryMultiple",
-                                             div("Összehasonlítási alapot képező országok",
+                   shinyWidgets::pickerInput("hconvCountryInvestigated", "Vizsgált ország",
+                                             CountryCodes, "HUN", FALSE, options = pickeropts),
+                   shinyWidgets::pickerInput("hconvCountryComparison",
+                                             div("Összehasonlítási alapot képező ország(ok)",
                                                  bslib::tooltip(
                                                    bsicons::bs_icon("question-circle"),
-                                                   paste0("Bár a gombok feliratai az ",
-                                                          "egyszerűség kedvéért tartalmazzák, ",
-                                                          "az összehasonlító országokban ",
-                                                          "természetesen nincs benne ",
-                                                          "Magyarország."),
+                                                   paste0("Az összehasonlító országokból ",
+                                                          "természetesen mindig kivételre ",
+                                                          "kerül a vizsgált ország."),
                                                    placement = "right")),
-                                             CountryCodes[CountryCodes != "HUN"],
-                                             setdiff(EUCountries$EU27, "HUN"), TRUE,
+                                             CountryCodes, EUCountries$EU27, TRUE,
                                              options = pickeropts),
                    actionButton("hconvEU27", "EU27 (Európai Unió) beállítása"),
                    actionButton("hconvEU15", "EU15 ('Nyugat') beállítása"),
                    actionButton("hconvEU11", "EU11 ('Kelet') beállítása"),
                    actionButton("hconvV4", "V4 (visegrádi négyek) beállítása"),
-                   shinyWidgets::pickerInput("hconvIndicator", "Ábrázolt mutató",
-                                             c("Halálozás" = "death",
-                                               "Elvesztett életévek száma" = "yll"),
-                                             options = pickeroptsWOSearch),
-                   conditionalPanel("input.hconvIndicator == 'yll'",
-                                    shinyWidgets::pickerInput("hconvYllMethod", "Módszer",
-                                                              c("Fix cél-életkor (PYLL)" = "pyll"),
-                                                              options = pickeroptsWOSearch)),
-                   conditionalPanel("input.hconvIndicator == 'yll' & input.hconvYllMethod == 'pyll'",
-                                    numericInput("hconvYllPyllTarget", "Cél-életkor", 75, 0, 100, 1)),
+                   # shinyWidgets::pickerInput("hconvIndicator", "Ábrázolt mutató",
+                   #                           c("Halálozás" = "death",
+                   #                             "Elvesztett életévek száma" = "yll"),
+                   #                           options = pickeroptsWOSearch),
+                   # conditionalPanel("input.hconvIndicator == 'yll'",
+                   #                  shinyWidgets::pickerInput("hconvYllMethod", "Módszer",
+                   #                                            c("Fix cél-életkor (PYLL)" = "pyll"),
+                   #                                            options = pickeroptsWOSearch)),
+                   # conditionalPanel("input.hconvIndicator == 'yll' & input.hconvYllMethod == 'pyll'",
+                   #                  numericInput("hconvYllPyllTarget", "Cél-életkor", 75, 0, 100, 1)),
                    radioButtons("hconvType", "Ábrázolás módja",
                                 c("Szóródási diagram" = "scatter", "Hányados" = "ratio",
                                   "Különbség" = "difference"), "ratio"),
@@ -429,6 +429,62 @@ ui <- navbarPage(
                  
                  mainPanel(
                    shinycssloaders::withSpinner(highchartOutput("hconvPlot", height = "600px"))
+                 )
+               )
+             ),
+             
+             tabPanel(
+               title = "Egészségkonvergencia dekompozíciója",
+               sidebarLayout(
+                 sidebarPanel(
+                   shinyWidgets::pickerInput("hconvdecompCountryInvestigated", "Vizsgált ország",
+                                             CountryCodes, "HUN", FALSE, options = pickeropts),
+                   shinyWidgets::pickerInput("hconvdecompCountryComparison",
+                                             div("Összehasonlítási alapot képező ország(ok)",
+                                                 bslib::tooltip(
+                                                   bsicons::bs_icon("question-circle"),
+                                                   paste0("Az összehasonlító országokból ",
+                                                          "természetesen mindig kivételre ",
+                                                          "kerül a vizsgált ország."),
+                                                   placement = "right")),
+                                             CountryCodes, EUCountries$EU27, TRUE,
+                                             options = pickeropts),
+                   actionButton("hconvdecompEU27", "EU27 (Európai Unió) beállítása"),
+                   actionButton("hconvdecompEU15", "EU15 ('Nyugat') beállítása"),
+                   actionButton("hconvdecompEU11", "EU11 ('Kelet') beállítása"),
+                   actionButton("hconvdecompV4", "V4 (visegrádi négyek) beállítása"),
+                   # shinyWidgets::pickerInput("hconvdecompIndicator", "Ábrázolt mutató",
+                   #                           c("Halálozás" = "death",
+                   #                             "Elvesztett életévek száma" = "yll"),
+                   #                           options = pickeroptsWOSearch),
+                   # conditionalPanel("input.hconvdecompIndicator == 'yll'",
+                   #                  shinyWidgets::pickerInput("hconvdecompYllMethod", "Módszer",
+                   #                                            c("Fix cél-életkor (PYLL)" = "pyll"),
+                   #                                            options = pickeroptsWOSearch)),
+                   # conditionalPanel("input.hconvdecompIndicator == 'yll' & input.hconvdecompYllMethod == 'pyll'",
+                   #                  numericInput("hconvdecompYllPyllTarget", "Cél-életkor", 75, 0, 100, 1)),
+                   tags$style(type = "text/css", ".irs-grid-pol.small {height: 0px;}"),
+                   sliderInput("hconvdecompYear", "Vizsgált intervallum",
+                               min(RawData$Year), max(RawData$Year),
+                               c(2003, 2019), 1, sep = "", width = "100%"),
+                   shinyWidgets::pickerInput("hconvdecompType", "Dekompozíció módja",
+                                             c("Hányados felbontása összegként" = "ratioassum"),
+                                             "ratioassum" ,FALSE, options = pickeroptsWOSearch),
+                   shinyWidgets::pickerInput("hconvdecompIndicator", "Ábrázolt mutató",
+                                             c("Halálozás" = "death",
+                                               "Elvesztett életévek száma" = "yll"),
+                                             options = pickeroptsWOSearch),
+                   conditionalPanel("input.hconvdecompIndicator == 'yll'",
+                                    shinyWidgets::pickerInput("hconvdecompYllMethod", "Módszer",
+                                                              c("Fix cél-életkor (PYLL)" = "pyll"),
+                                                              options = pickeroptsWOSearch)),
+                   conditionalPanel("input.hconvdecompIndicator == 'yll' & input.hconvdecompYllMethod == 'pyll'",
+                                    numericInput("hconvdecompYllPyllTarget", "Cél-életkor", 75, 0, 100, 1))
+                   # ownpanel("hconvdecomp", TRUE, hconv = TRUE)
+                 ),
+                 
+                 mainPanel(
+                   shinycssloaders::withSpinner(highchartOutput("hconvdecompPlot", height = "600px"))
                  )
                )
              ),
@@ -499,6 +555,41 @@ server <- function(input, output) {
                                   choices = if(input$timeMetric == "adjrate")
                                     stratsel[stratsel != "AgeLabel"] else stratsel))
   
+  KitagawaDecomp <- function(di, years) {
+    temp <- di[Year %in% years]
+    temp$Year <- ifelse(temp$Year == years[1], 0, 1)
+    
+    temp <- dcast(temp, CauseGroup + EurostatCode ~ iso3c + Year, value.var = "adj.rate")[order(EurostatCode)]
+    
+    temp <- temp[Comparator_0 != 0 & Comparator_1 != 0]
+    
+    temp$V_0 <- temp$Investigated_0 / temp$Comparator_0
+    temp$V_1 <- temp$Investigated_1 / temp$Comparator_1
+    temp$k <- temp$V_1 - temp$V_0
+    
+    temp$Kp0 <- temp$Comparator_0 / sum(temp$Comparator_0) * temp$k
+    temp$Kp1 <- temp$Comparator_1 / sum(temp$Comparator_1) * temp$k
+    
+    temp$Kpp0 <- (temp$Comparator_1 / sum(temp$Comparator_1) * temp$V_0) -
+      (temp$Comparator_0 / sum(temp$Comparator_0) * temp$V_0)
+    temp$Kpp1 <- (temp$Comparator_1 / sum(temp$Comparator_1) * temp$V_1) -
+      (temp$Comparator_0 / sum(temp$Comparator_0) * temp$V_1)
+    
+    temp$Kp <- (temp$Kp0 + temp$Kp1)/2
+    temp$Kpp <- (temp$Kpp0 + temp$Kpp1)/2
+    
+    start <- sum(temp$Investigated_0) / sum(temp$Comparator_0)
+    end <- sum(temp$Investigated_1) / sum(temp$Comparator_1)
+    
+    tempplot <- data.table(Cause = c(paste0("Kezdő (", years[1], "): ", round(start, 2)), temp$CauseGroup, "Összetételhatás", paste0("Záró (", years[2], "): ", round(end, 2))),
+                           Code = c(paste0("Kezdő (", years[1], "): ", round(start, 2)), temp$EurostatCode, "Összetételhatás", paste0("Záró (", years[2], "): ", round(end, 2))),
+                           low = c(0, 0, cumsum(temp$Kp), end - start) + start,
+                           high = c(0, cumsum(temp$Kp), sum(temp$Kp) + sum(temp$Kpp), end - start) + start)
+    tempplot$color <- ifelse(tempplot$high > tempplot$low, "#FF0000", "#00FF00")
+    
+    return(list(temp = temp, plot = tempplot, Kprime = sum(temp$Kp)))
+  }
+  
   dataInputFun <- function(category, multipleICD, ICDSingle, ICDMultiple,
                            multipleCountry, countrySingle, countryMultiple,
                            indicator, yllMethod, yllPyllTarget,
@@ -515,7 +606,7 @@ server <- function(input, output) {
                                                         Weights, EurostatCode))))
     
     if(!is.na(multipleCountry)) {
-      country <- if((multipleICD == "MultiIndiv" && !comp && !valid) || (multipleCountry == "Single"))
+      country <- if((multipleICD == "MultiIndiv" && is.null(comp) && !valid) || (multipleCountry == "Single"))
         countrySingle else countryMultiple
       if(is.null(country)) return(NULL)
       
@@ -553,7 +644,7 @@ server <- function(input, output) {
     rd <- merge(rd, PopData, by = c("iso3c", "Year", "Sex", "Age", "Frmat"))
     
     if(category == "Avoidable") rd <- rd[AgeNum < 75]
-    
+
     if(indicator == "yll" && yllMethod == "pyll")
       rd$value <- rd$value * pmax(0, yllPyllTarget - rd$AgeNum)
     
@@ -561,7 +652,7 @@ server <- function(input, output) {
     if(multipleICD != "MultiIndiv" && !is.na(strat) && multipleCountry == "Single")
       byvars <- c(byvars, strat[strat != "None"])
     
-    if(comp) rd$iso3c <- ifelse(rd$iso3c == "HUN", "HUN", "Comparator")
+    if(!is.null(comp)) rd$iso3c <- ifelse(rd$iso3c == comp, "Investigated", "Comparator")
     rd <- rd[, .(value = sum(value), Pop = sum(Pop)), setdiff(names(rd), c("value", "Pop"))]
     
     rd <- switch(metric,
@@ -577,8 +668,8 @@ server <- function(input, output) {
     
     if(!is.na(ordVar)) rd <- rd[order(rd[[ordVar]])]
     
-    if(!comp) rd <- merge(rd, data.table(iso3c = CountryCodes,
-                                         CountryName = names(CountryCodes)))
+    if(is.null(comp)) rd <- merge(rd, data.table(iso3c = CountryCodes,
+                                                 CountryName = names(CountryCodes)))
     
     return(list(rd = rd, icd = icd, country = country))
   }
@@ -601,14 +692,14 @@ server <- function(input, output) {
     input$timeMultipleCountry,input$timeCountrySingle, input$timeCountryMultiple,
     input$timeIndicator, input$timeYllMethod, input$timeYllPyllTarget,
     input$timeStratification, input$timeMetric, "Year", c("Year", "CauseGroup"),
-    NULL, "Összesen", "Összesen", FALSE, FALSE))
+    NULL, "Összesen", "Összesen", NULL, FALSE))
   dataInputMap <- reactive(dataInputFun(
     input$mapCategory,
     "Single", mapICDSingle(), NA,
     NA, NA, NA,
     input$mapIndicator, input$mapYllMethod, input$mapYllPyllTarget,
     NA, input$mapMetric, NA, NULL,
-    input$mapYear, input$mapSex, input$mapAge, FALSE, FALSE))
+    input$mapYear, input$mapSex, input$mapAge, NULL, FALSE))
   dataInputAgesex <- reactive(dataInputFun(
     input$agesexCategory, input$agesexMultipleICD,
     switch(input$agesexCategory, "Groups" = input$agesexGroupsICDSingle,
@@ -619,20 +710,29 @@ server <- function(input, output) {
            "Avoidable" = input$agesexAvoidableICDMultiple),
     input$agesexMultipleCountry,input$agesexCountrySingle, input$agesexCountryMultiple,
     "death", NA, NA, input$agesexStratification, "cruderate", "AgeNum",
-    c("Age", "AgeNum", "AgeLabel", "CauseGroup"), NULL, "Összesen", "Összesen", FALSE, FALSE))
+    c("Age", "AgeNum", "AgeLabel", "CauseGroup"), NULL, "Összesen", "Összesen", NULL, FALSE))
   dataInputHunworld <- reactive(dataInputFun(
     "Groups", "MultiIndiv", NA, names(ICDGroups$Groups),
-    "Multiple", NA, c("HUN", input$hunworldCountryMultiple),
+    "Multiple", NA, union(input$hunworldCountryInvestigated, input$hunworldCountryComparison),
     input$hunworldIndicator, input$hunworldYllMethod, input$hunworldYllPyllTarget,
-    NA, "adjrate", NA, "CauseGroup", input$hunworldYear, "Összesen", "Összesen", TRUE, FALSE))
+    NA, "adjrate", NA, "CauseGroup", input$hunworldYear, "Összesen", "Összesen",
+    input$hunworldCountryInvestigated, FALSE))
   dataInputHconv <- reactive(dataInputFun(
-    "Groups", "Single",
+    input$hconvCategory, "Single",
     switch(input$hconvCategory, "Groups" = input$hconvGroupsICDSingle,
            "Individual" = input$hconvIndividualICDSingle,
            "Avoidable" = input$hconvAvoidableICDSingle), NA,
-    "Multiple", NA, c("HUN", input$hconvCountryMultiple),
+    "Multiple", NA, union(input$hconvCountryInvestigated, input$hconvCountryComparison),
     input$hconvIndicator, input$hconvYllMethod, input$hconvYllPyllTarget,
-    NA, input$hconvMetric, NA, "Year", NULL, "Összesen", "Összesen", TRUE, FALSE))
+    NA, input$hconvMetric, NA, "Year", NULL, "Összesen", "Összesen",
+    input$hconvCountryInvestigated, FALSE))
+  dataInputHconvdecomp <- reactive(dataInputFun(
+    "Groups",
+    "MultiIndiv", NA, names(ICDGroups$Groups)[c(2, 9, 32, 33, 34, 37, 42, 46, 53, 60, 65, 66, 69, 72, 73, 74, 75, 79, 83)],
+    "Multiple", NA, union(input$hconvdecompCountryInvestigated, input$hconvdecompCountryComparison),
+    input$hconvdecompIndicator, input$hconvdecompYllMethod, input$hconvdecompYllPyllTarget, NA,
+    "adjrate", "EurostatCode", c("Year", "CauseGroup", "EurostatCode"),
+    NULL, "Összesen", "Összesen", input$hconvdecompCountryInvestigated, FALSE))
   
   output$timePlot <- renderHighchart({
     p <- highchart()
@@ -781,16 +881,16 @@ server <- function(input, output) {
   })
   
   observeEvent(input$hunworldEU27,
-               shinyWidgets::updatePickerInput(inputId = "hunworldCountryMultiple",
+               shinyWidgets::updatePickerInput(inputId = "hunworldCountryComparison",
                                                selected = EUCountries$EU27))
   observeEvent(input$hunworldEU15,
-               shinyWidgets::updatePickerInput(inputId = "hunworldCountryMultiple",
+               shinyWidgets::updatePickerInput(inputId = "hunworldCountryComparison",
                                                selected = EUCountries$EU15))
   observeEvent(input$hunworldEU11,
-               shinyWidgets::updatePickerInput(inputId = "hunworldCountryMultiple",
+               shinyWidgets::updatePickerInput(inputId = "hunworldCountryComparison",
                                                selected = EUCountries$EU11))
   observeEvent(input$hunworldV4,
-               shinyWidgets::updatePickerInput(inputId = "hunworldCountryMultiple",
+               shinyWidgets::updatePickerInput(inputId = "hunworldCountryComparison",
                                                selected = EUCountries$V4))
   
   output$hunworldPlot <- renderHighchart({
@@ -798,16 +898,17 @@ server <- function(input, output) {
     gc()
     mortdat <- dcast(mortdat[, .(iso3c, CauseGroup, value)], CauseGroup ~ iso3c,
                      value.var = "value")
+    invcountryname <- names(CountryCodes)[CountryCodes == input$hunworldCountryInvestigated]
     
-    p <- hchart(if("Comparator" %in% names(mortdat)) mortdat else
-      data.table(HUN = numeric(), Comparator = numeric(), CauseGroup = character), "point",
-      if(input$hunworldPropsize) hcaes(x = HUN, y = Comparator, group = CauseGroup, size = HUN) else
-        hcaes(x = HUN, y = Comparator, group = CauseGroup))
+    p <- hchart(if("Comparator" %in% names(mortdat) & "Investigated" %in% names(mortdat)) mortdat else
+      data.table(Investigated = numeric(), Comparator = numeric(), CauseGroup = character()), "point",
+      if(input$hunworldPropsize) hcaes(x = Investigated, y = Comparator, group = CauseGroup, size = Investigated) else
+        hcaes(x = Investigated, y = Comparator, group = CauseGroup))
     
     p <- p |>
-      hc_title(text = paste("<b>Magyarország összehasonlítása más országokkal</b><br>",
-                            "Összehasonlítási alap a következő országok átlaga: ",
-                            paste0(input$hunworldCountryMultiple, collapse = ", "))) |>
+      hc_title(text = paste0("<b>", invcountryname, " összehasonlítása más országokkal</b><br>",
+                             "Összehasonlítási alap a következő országok átlaga: ",
+                             paste0(setdiff(input$hunworldCountryComparison, input$hunworldCountryInvestigated), collapse = ", "))) |>
       hc_subtitle(
         text = "Okspecifikus Mortalitási Adatbázis<br>Ferenci Tamás, medstat.hu",
         align = "left", verticalAlign = "bottom") |>
@@ -817,8 +918,8 @@ server <- function(input, output) {
                                           list(x = 1e-6, y = 1e-6, xAxis = 0, yAxis = 0),
                                           list(x = 1e6, y = 1e6, xAxis = 0, yAxis = 0))))) |>
       hc_xAxis(title = list(text = if(input$hunworldIndicator == "death")
-        "Magyarország standardizált mortalitási rátája [fő/100 ezer fő/év]" else
-          "Magyarország standardizált elvesztett életév rátája [fő/100 ezer fő/év]"),
+        paste0(invcountryname, " standardizált mortalitási rátája [fő/100 ezer fő/év]") else
+          paste0(invcountryname, " standardizált elvesztett életév rátája [fő/100 ezer fő/év]")),
         type = if(input$hunworldLog) "logarithmic" else "linear",
         min = if(input$hunworldXRangeSet) input$hunworldXRange[1],
         max = if(input$hunworldXRangeSet) input$hunworldXRange[2]) |>
@@ -828,9 +929,9 @@ server <- function(input, output) {
         type = if(input$hunworldLog) "logarithmic" else "linear") |>
       hc_legend(enabled = FALSE) |>
       hc_tooltip(pointFormatter = JS(
-        "function() { return('Magyarország: ' + this.x.toFixed(1) + '/100 ezer fő/év' +
-      '<br>Összehasonlítási országok: ' + this.y.toFixed(1) + '/100 ezer fő/év<br>A magyar adat az összehasonlítási országok ' +
-      (this.x / this.y * 100).toFixed(1) + '%-a (a különbség ' + (this.x - this.y).toFixed(1) + '/100 ezer fő/év)'); }")) |>
+        paste0("function() { return('", invcountryname, ": ' + this.x.toFixed(1) + '/100 ezer fő/év' +
+      '<br>Összehasonlítási országok: ' + this.y.toFixed(1) + '/100 ezer fő/év<br>", invcountryname, " adata az összehasonlítási országok ' +
+      (this.x / this.y * 100).toFixed(1) + '%-a (a különbség ' + (this.x - this.y).toFixed(1) + '/100 ezer fő/év)'); }"))) |>
       hc_add_theme(hc_theme(chart = list(backgroundColor = "white"))) |>
       hc_credits(enabled = TRUE) |>
       hc_exporting(enabled = TRUE, chartOptions = list(legend = TRUE),
@@ -840,16 +941,16 @@ server <- function(input, output) {
   })
   
   observeEvent(input$hconvEU27,
-               shinyWidgets::updatePickerInput(inputId = "hconvCountryMultiple",
+               shinyWidgets::updatePickerInput(inputId = "hconvCountryComparison",
                                                selected = EUCountries$EU27))
   observeEvent(input$hconvEU15,
-               shinyWidgets::updatePickerInput(inputId = "hconvCountryMultiple",
+               shinyWidgets::updatePickerInput(inputId = "hconvCountryComparison",
                                                selected = EUCountries$EU15))
   observeEvent(input$hconvEU11,
-               shinyWidgets::updatePickerInput(inputId = "hconvCountryMultiple",
+               shinyWidgets::updatePickerInput(inputId = "hconvCountryComparison",
                                                selected = EUCountries$EU11))
   observeEvent(input$hconvV4,
-               shinyWidgets::updatePickerInput(inputId = "hconvCountryMultiple",
+               shinyWidgets::updatePickerInput(inputId = "hconvCountryComparison",
                                                selected = EUCountries$V4))
   
   output$hconvPlot <- renderHighchart({
@@ -859,22 +960,24 @@ server <- function(input, output) {
     mortdat <- dcast(mortdat[, .(iso3c, Year, value)], Year ~ iso3c, value.var = "value")
     # if(!"Comparator" %in% names(mortdat))
     #   mortdat <- data.table(HUN = numeric(), Comparator = numeric(), Year = numeric())
-    mortdat$Ratio <- mortdat$HUN / mortdat$Comparator
-    mortdat$Difference <- mortdat$HUN - mortdat$Comparator
+    mortdat$Ratio <- mortdat$Investigated / mortdat$Comparator
+    mortdat$Difference <- mortdat$Investigated - mortdat$Comparator
+    
+    invcountryname <- names(CountryCodes)[CountryCodes == input$hconvCountryInvestigated]
     
     p <- switch(input$hconvType,
                 "scatter" = hchart(mortdat, "scatter",
-                                   hcaes(x = HUN, y = Comparator, group = Year, color = Year)),
+                                   hcaes(x = Investigated, y = Comparator, group = Year, color = Year)),
                 "ratio" = hchart(mortdat, "line", hcaes(x = Year, y = Ratio),
                                  name = "Hányados"),
                 "difference" = hchart(mortdat, "line", hcaes(x = Year, y = Difference),
                                       name = "Különbség"))
     
     p <- p |>
-      hc_title(text = paste("<b>Magyarország konvergenciája más országokhoz</b><br>",
-                            hconvICDSingle(), "<br>",
-                            "Összehasonlítási alap a következő országok átlaga: ",
-                            paste0(input$hconvCountryMultiple, collapse = ", "))) |>
+      hc_title(text = paste0("<b>", invcountryname, " konvergenciája más országokhoz</b><br>",
+                             hconvICDSingle(), "<br>",
+                             "Összehasonlítási alap a következő országok átlaga: ",
+                             paste0(setdiff(input$hconvCountryComparison, input$hconvCountryInvestigated), collapse = ", "))) |>
       hc_subtitle(
         text = "Okspecifikus Mortalitási Adatbázis<br>Ferenci Tamás, medstat.hu",
         align = "left", verticalAlign = "bottom") |>
@@ -885,11 +988,11 @@ server <- function(input, output) {
                    sourceWidth = 1600/2, sourceHeight = 900/2)
     
     if(input$hconvType == "ratio") p <-
-      p |> hc_yAxis(title = list(text = "Hányados (HUN/többi)"), softMin = 0.9, softMax = 1.1,
+      p |> hc_yAxis(title = list(text = paste0("Hányados (", invcountryname, " / többi)")), softMin = 0.9, softMax = 1.1,
                     plotLines = list(list(value = 1, color = "red", width = 2)),
                     gridZIndex = 0)
     if(input$hconvType == "difference") p <-
-      p |> hc_yAxis(title = list(text = "Különbség (HUN-többi)"), softMin = -10, softMax = 10,
+      p |> hc_yAxis(title = list(text = paste0("Különbség (", invcountryname, " - többi)")), softMin = -10, softMax = 10,
                     plotLines = list(list(value = 0, color = "red", width = 2)),
                     gridZindex = 0)
     if(input$hconvType %in% c("ratio", "difference")) {
@@ -903,12 +1006,12 @@ server <- function(input, output) {
             input$hconvMetric == "count",
             "x: <b>{point.x:.0f}</b><br>y: <b>{point.y:.0f}</b>",
             "x: <b>{point.x:.1f}</b><br>y: <b>{point.y:.1f}</b>")) |>
-          hc_yAxis(title = list(text = if(input$hunworldIndicator == "death")
+          hc_yAxis(title = list(text = if(input$hconvIndicator == "death")
             "A többi ország standardizált mortalitási rátája [fő/100 ezer fő/év]" else
               "A többi ország standardizált elvesztett életév rátája [fő/100 ezer fő/év]")) |>
           hc_xAxis(title = list(text = if(input$hconvIndicator == "death")
-            "Magyarország standardizált mortalitási rátája [fő/100 ezer fő/év]" else
-              "Magyarország standardizált elvesztett életév rátája [fő/100 ezer fő/év]")) |>
+            paste0(invcountryname, " standardizált mortalitási rátája [fő/100 ezer fő/év]") else
+              paste0(invcountryname, " standardizált elvesztett életév rátája [fő/100 ezer fő/év]"))) |>
           hc_annotations(list(draggable = FALSE,
                               shapes = list(type = "path", strokeWidth = 2,
                                             points = list(
@@ -917,6 +1020,41 @@ server <- function(input, output) {
     }
     
     p
+  })
+  
+  observeEvent(input$hconvdecompEU27,
+               shinyWidgets::updatePickerInput(inputId = "hconvdecompCountryComparison",
+                                               selected = EUCountries$EU27))
+  observeEvent(input$hconvdecompEU15,
+               shinyWidgets::updatePickerInput(inputId = "hconvdecompCountryComparison",
+                                               selected = EUCountries$EU15))
+  observeEvent(input$hconvdecompEU11,
+               shinyWidgets::updatePickerInput(inputId = "hconvdecompCountryComparison",
+                                               selected = EUCountries$EU11))
+  observeEvent(input$hconvdecompV4,
+               shinyWidgets::updatePickerInput(inputId = "hconvdecompCountryComparison",
+                                               selected = EUCountries$V4))
+  
+  output$hconvdecompPlot <- renderHighchart({
+    mortdat <- dataInputHconvdecomp()$rd
+    gc()
+    
+    mortdat <- KitagawaDecomp(mortdat, input$hconvdecompYear)
+    tempplot <- mortdat$plot
+    
+    p <- highchart() |>
+      hc_add_series(data = tempplot, type = "columnrange",
+                    hcaes(x = Cause, low = low, high = high, color = color)) |>
+      hc_xAxis(categories = tempplot$Code) |>
+      hc_yAxis(title = list(text = paste0("Hányados (", names(CountryCodes)[CountryCodes == input$hconvdecompCountryInvestigated], " / többi)"))) |>
+      hc_tooltip(pointFormatter = JS("function() {return('Hozzájárulás:' + ((this.high - this.low)<=0?'':'+') + (this.high - this.low).toFixed(2))}")) |>
+      hc_legend(enabled = FALSE)
+    
+    for(i in 1:(nrow(tempplot) - 1))
+      p <- p |> hc_add_series(data = data.frame(Code = c(i - 1, i), y = rep(tempplot$high[i], 2)), type = "line", hcaes(x = Code, y = y), color = "black")
+    
+    p |> hc_plotOptions(line = list(enableMouseTracking = FALSE, marker = list(enabled = FALSE),
+                                    lineWidth = 0.5))
   })
   
   output$dimredvizPlot <- renderHighchart({
